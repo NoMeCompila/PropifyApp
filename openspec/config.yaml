@@ -1,0 +1,74 @@
+schema: spec-driven
+
+# Project context (optional)
+# This is shown to AI when creating artifacts.
+# Add your tech stack, conventions, style guides, domain knowledge, etc.
+
+context: |
+  Project: PropifyApp
+  Language: English
+  Domain: Web Application / Property Management
+  Stack: React 19, TypeScript, Vite 6, Tailwind CSS v4, Lucide React, Motion, Supabase (PostgreSQL, Auth, RLS).
+
+  Architecture:
+  - The application is a React 19 single-page application built with TypeScript and Vite 6.
+  - Functional components with React Hooks are used exclusively; Class components should not be introduced.
+  - Backend and database interactions are handled via Supabase BaaS (PostgreSQL with Row Level Security, Auth, and Triggers).
+  - Styling is handled strictly via Tailwind CSS v4 utility classes; custom raw CSS files should be kept minimal.
+  - UI Icons are provided by Lucide React (`lucide-react`).
+  - Motion (`motion/react` or `framer-motion`) is used for fluid UI animations and interactive components.
+  - `index.html` remains the static entry point at the repository root.
+  - All application source code lives under `src/`.
+
+  Source layout:
+  - `src/main.tsx`: App entry point that initializes React, imports global styles (`index.css`), and mounts the root component.
+  - `src/App.tsx`: Root application component managing layout and core routing/view rendering.
+  - `src/index.css`: Global styles, Tailwind CSS imports, and base theme definitions.
+  - `src/types.ts`: Root level TypeScript definitions, interfaces, and database model types.
+  - `src/components/`: Reusable UI components and modal dialogs (e.g., `HeaderBar.tsx`, `Toast.tsx`, `StudentCard.tsx`).
+  - `src/pages/`: Route-level screen/view components (e.g., `DashboardView.tsx`, `LoginView.tsx`, `StudentsListView.tsx`).
+  - `src/services/`: API layer isolating Supabase SDK calls and external integrations (e.g., `authService.ts`, `studentsService.ts`).
+  - `src/lib/`: Client initializations and third-party library wrappers (e.g., `supabase.ts` for the Supabase client instance).
+  - `src/utils/`: Pure stateless helper functions, formatting utilities, and generators (e.g., `pdfGenerator.ts`, `studentHelpers.ts`).
+  - `src/data/`: Mock or seed initial data files (e.g., `initialData.ts`).
+  - `public/`: Static web assets, favicon, and `manifest.json`.
+
+  Naming and imports:
+  - Use PascalCase for React component files (`.tsx`) under `src/components/` and `src/pages/` (e.g., `HeaderBar.tsx`, `DashboardView.tsx`).
+  - Use camelCase for TypeScript utility, service, and lib files (`.ts`) under `src/services/`, `src/utils/`, and `src/lib/` (e.g., `authService.ts`, `pdfGenerator.ts`, `supabase.ts`).
+  - Use PascalCase for React component names inside code.
+  - Page/View components in `src/pages/` must follow the `*View.tsx` naming suffix convention.
+  - Shared types must be exported from `src/types.ts`.
+  - Prefer explicit TypeScript props interfaces (`interface ComponentProps { ... }`) for component declarations.
+
+  Runtime and data flow:
+  - Typical data flow: Page/View -> Custom Hook / State -> Service (`src/services/`) -> Supabase Client (`src/lib/supabase.ts`) -> Supabase BaaS (PostgreSQL / Auth).
+  - Component local state is managed via React Hooks (`useState`, `useContext`, `useReducer`, `useEffect`).
+  - Supabase Row Level Security (RLS) policies enforce security constraints on database queries directly at the BaaS layer.
+  - Icons must be imported directly from `lucide-react`.
+  - Animations must leverage `motion` components (e.g., `<motion.div>`) for transitions and interactive elements.
+
+  Quality and tooling:
+  - Project uses strict TypeScript configuration.
+  - Environment variables (e.g., `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`) must be referenced safely via `import.meta.env`.
+  - Sensitive operations and business rules are guarded by Supabase RLS and database triggers.
+  - Before merging changes, keep code, architecture, and OpenSpec artifacts aligned.
+
+# Per-artifact rules (optional)
+# Add custom rules for specific artifacts.
+
+rules:
+  proposal:
+    - Keep proposal focused on functional scope, user value, and operational impact.
+    - Do not include concrete component file names, database table definitions, or internal helper names unless essential to scope.
+    - Put technical design details, database schema changes, and Supabase service structures in design.md.
+  specs:
+    - Define expected behavior using requirements and scenarios as the behavioral source of truth.
+    - Focus on observable user-facing outcomes, authentication workflows, and UI interactions.
+    - Use normative language such as SHALL or MUST, and preserve the required OpenSpec requirement and scenario heading format.
+    - Write scenarios in a structured acceptance style (GIVEN / WHEN / THEN).
+    - Do not include file paths, React component names, Supabase SQL trigger syntax, or specific service function names.
+    - Put database schemas, RLS policies, asset paths, and implementation details in design.md unless they are part of the observable contract.
+  design:
+    - Document technical implementation details, database schemas, Supabase RLS policies, and React component hierarchies.
+    - Detail API service contracts (`src/services/`) and integration points with Supabase Auth or Database.
