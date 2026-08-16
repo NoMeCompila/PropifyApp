@@ -1,8 +1,31 @@
 import React, { useState, useEffect } from 'react';
 import { Property, PropertyFilter, Inquiry, VisitSchedule, Reservation, AuthUser, ThemeMode } from './types';
-import { propertyService } from './services/propertyService';
-import { authService } from './services/authService';
-import { interactionService } from './services/interactionService';
+import {
+  getProperties,
+  createProperty,
+  updateProperty,
+  deleteProperty,
+} from './services/propertiesService';
+import {
+  signInSeller,
+  signUpSeller,
+  signOutSeller,
+  getCurrentSellerSession,
+  onAuthStateChange,
+} from './services/authService';
+import {
+  createInquiry,
+  getInquiriesBySeller,
+  toggleInquiryReadStatus,
+  archiveInquiry,
+  scheduleVisit,
+  getSellerVisits,
+  updateVisitStatus,
+  createReservation,
+  getSellerReservations,
+  updateReservationStatus,
+} from './services/interactionsService';
+import { seedGeographicLocations } from './scripts/seedLocations';
 import { HeaderBar, UserRoleMode, ActivePage } from './components/HeaderBar';
 import { BottomNavBar } from './components/BottomNavBar';
 import { CatalogView } from './pages/CatalogView';
@@ -82,24 +105,41 @@ export default function App() {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   };
 
-  // Load initial data
+  // Load initial data & Supabase auth listener
+  useEffect(() => {
+    // Seed locations idempotently
+    seedGeographicLocations().catch(() => {});
+
+    // Check initial user session
+    getCurrentSellerSession().then((user) => {
+      setCurrentUser(user);
+    });
+
+    // Auth listener
+    const { data: authListener } = onAuthStateChange((user) => {
+      setCurrentUser(user);
+    });
+
+    return () => {
+      authListener?.subscription?.unsubscribe();
+    };
+  }, []);
+
   const loadData = async () => {
     try {
-      const [props, inqs, vsts, rsvs, session] = await Promise.all([
-        propertyService.getProperties(filter),
-        interactionService.getInquiries(),
-        interactionService.getVisits(),
-        interactionService.getReservations(),
-        authService.getSession(),
+      const [props, inqs, vsts, rsvs] = await Promise.all([
+        getProperties(filter),
+        getInquiriesBySeller(),
+        getSellerVisits(),
+        getSellerReservations(),
       ]);
 
       setProperties(props);
       setInquiries(inqs);
       setVisits(vsts);
       setReservations(rsvs);
-      setCurrentUser(session.user);
     } catch (e) {
-      console.error('Error loading data:', e);
+      console.error('Error loading data from Supabase:', e);
     }
   };
 
@@ -116,11 +156,20 @@ export default function App() {
 
   const handleCreateProperty = async (data: Omit<Property, 'id' | 'createdAt' | 'updatedAt'>) => {
     if (propertyToEdit) {
-      await propertyService.updateProperty(propertyToEdit.id, data);
-      addToast(`Publicación ${propertyToEdit.id} actualizada con éxito.`);
+      const updated = await updateProperty(propertyToEdit.id, data);
+      if (updated) {
+        addToast(`Publicación ${propertyToEdit.id} actualizada con éxito.`);
+      } else {
+        addToast('No se pudo actualizar la publicación en Supabase.', 'error');
+      }
     } else {
-      const newProp = await propertyService.createProperty(data);
-      addToast(`Publicación ${newProp.id} creada y publicada exitosamente.`);
+      const sellerId = currentUser?.id || '00000000-0000-0000-0000-000000000000';
+      const { property: newProp, error } = await createProperty(data, sellerId);
+      if (newProp) {
+        addToast(`Publicación creada y publicada exitosamente.`);
+      } else {
+        addToast(error ? `Error al guardar en Supabase: ${error}` : 'No se pudo guardar la nueva publicación en Supabase.', 'error');
+      }
     }
     await loadData();
     setIsPropertyFormOpen(false);
@@ -128,39 +177,62 @@ export default function App() {
   };
 
   const handleDeleteProperty = async (id: string) => {
-    await propertyService.deleteProperty(id);
-    addToast(`Publicación ${id} eliminada correctamente.`, 'info');
+    const deleted = await deleteProperty(id);
+    if (deleted) {
+      addToast(`Publicación ${id} eliminada correctamente.`, 'info');
+    } else {
+      addToast('Error al eliminar publicación en Supabase.', 'error');
+    }
     await loadData();
   };
 
   const handleTogglePublicationStatus = async (id: string) => {
-    const updated = await propertyService.togglePublicationStatus(id);
+    const prop = properties.find((p) => p.id === id);
+    if (!prop) return;
+    const newStatus = prop.publicationStatus === 'published' ? 'paused' : 'published';
+    const updated = await updateProperty(id, { publicationStatus: newStatus });
     if (updated) {
-      addToast(`Estado de ${id} cambiado a "${updated.publicationStatus === 'published' ? 'Publicado' : 'Pausado'}".`);
+      addToast(`Estado de ${id} cambiado a "${newStatus === 'published' ? 'Publicado' : 'Pausado'}".`);
       await loadData();
     }
   };
 
   const handleScheduleVisitSubmit = async (visitData: any) => {
-    await interactionService.createVisitSchedule(visitData);
-    addToast('¡Solicitud de visita registrada! El vendedor se contactará en breve.');
+    const newVisit = await scheduleVisit(visitData);
+    if (newVisit) {
+      addToast('¡Solicitud de visita registrada! El vendedor se contactará en breve.');
+    } else {
+      addToast('No se pudo agendar la visita.', 'error');
+    }
     await loadData();
   };
 
   const handleReservationSubmit = async (resData: any) => {
-    await interactionService.createReservation(resData);
-    addToast('¡Iniciada reserva digital! Se coordinará la firma y transferencia.', 'success');
+    const newRes = await createReservation(resData);
+    if (newRes) {
+      addToast('¡Iniciada reserva digital! Se coordinará la firma y transferencia.', 'success');
+    } else {
+      addToast('No se pudo crear la reserva.', 'error');
+    }
     await loadData();
   };
 
   const handleInquirySubmit = async (inqData: any) => {
-    await interactionService.createInquiry(inqData);
-    addToast('Consulta enviada directamente al vendedor.', 'success');
+    const newInq = await createInquiry(inqData);
+    if (newInq) {
+      addToast('Consulta enviada directamente al vendedor.', 'success');
+    } else {
+      addToast('No se pudo enviar la consulta.', 'error');
+    }
     await loadData();
   };
 
   const handleSignIn = async (email: string, pass: string) => {
-    const user = await authService.signIn(email, pass);
+    const { user, error } = await signInSeller(email, pass);
+    if (error || !user) {
+      addToast(error || 'Credenciales inválidas.', 'error');
+      throw new Error(error || 'Error al iniciar sesión');
+    }
     setCurrentUser(user);
     addToast(`¡Bienvenido de nuevo, ${user.name}!`);
     setActivePage('dashboard');
@@ -168,15 +240,19 @@ export default function App() {
   };
 
   const handleSignUp = async (name: string, email: string, pass: string, agencyName?: string) => {
-    const user = await authService.signUp(name, email, pass, agencyName);
+    const { user, error } = await signUpSeller(email, pass, { name, agencyName });
+    if (error || !user) {
+      addToast(error || 'Error al registrar vendedor.', 'error');
+      throw new Error(error || 'Error al registrar vendedor');
+    }
     setCurrentUser(user);
-    addToast(`¡Cuenta creada con éxito! Bienvenido, ${user.name}.`);
+    addToast(`¡Cuenta registrada! Bienvenido, ${user.name}.`);
     setActivePage('dashboard');
     return user;
   };
 
   const handleSignOut = async () => {
-    await authService.signOut();
+    await signOutSeller();
     setCurrentUser(null);
     setRoleMode('buyer');
     setActivePage('catalog');
@@ -280,21 +356,24 @@ export default function App() {
             visits={visits}
             reservations={reservations}
             onToggleInquiryRead={async (id) => {
-              await interactionService.toggleInquiryRead(id);
-              await loadData();
+              const inq = inquiries.find((i) => i.id === id);
+              if (inq) {
+                await toggleInquiryReadStatus(id, inq.read);
+                await loadData();
+              }
             }}
             onArchiveInquiry={async (id) => {
-              await interactionService.archiveInquiry(id);
+              await archiveInquiry(id);
               addToast('Consulta archivada.');
               await loadData();
             }}
             onUpdateVisitStatus={async (id, status) => {
-              await interactionService.updateVisitStatus(id, status);
+              await updateVisitStatus(id, status);
               addToast(`Visita marcada como ${status === 'confirmed' ? 'Confirmada' : 'Rechazada'}.`);
               await loadData();
             }}
             onUpdateReservationStatus={async (id, status) => {
-              await interactionService.updateReservationStatus(id, status);
+              await updateReservationStatus(id, status);
               addToast(`Reserva ${status === 'approved' ? 'Aprobada' : 'Rechazada'}.`);
               await loadData();
             }}
@@ -340,10 +419,10 @@ export default function App() {
           setPropertyToEdit(null);
         }}
         onSave={handleCreateProperty}
-        sellerId={currentUser?.id || 'seller-01'}
-        sellerName={currentUser?.name || 'Carlos Martínez'}
-        sellerEmail={currentUser?.email || 'agente.martinez@propify.com.ar'}
-        sellerPhone={currentUser?.phone || '+54 9 11 4589 1234'}
+        sellerId={currentUser?.id || '00000000-0000-0000-0000-000000000000'}
+        sellerName={currentUser?.name || 'Inmobiliaria Propify'}
+        sellerEmail={currentUser?.email || 'contacto@propify.com.ar'}
+        sellerPhone={currentUser?.phone || '+54 9 11 4000-8800'}
       />
     </div>
   );

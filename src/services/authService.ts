@@ -1,86 +1,170 @@
-import { AuthUser, AuthState } from '../types';
-import { mockSeller } from '../data/initialData';
+import { supabase } from '../lib/supabase';
+import { AuthUser } from '../types';
 
-const AUTH_USER_KEY = 'propify_auth_user_v1';
-
-function getStoredUser(): AuthUser | null {
+export const ensureSellerProfileExists = async (
+  userId: string,
+  email: string,
+  name?: string,
+  phone?: string,
+  agencyName?: string
+) => {
   try {
-    const raw = localStorage.getItem(AUTH_USER_KEY);
-    if (raw) {
-      return JSON.parse(raw);
-    }
-  } catch (e) {
-    console.error('Error reading auth user from localStorage:', e);
-  }
-  return mockSeller; // default logged in mock seller for MVP testing
-}
+    const { data: existing } = await supabase
+      .from('sellers')
+      .select('id')
+      .eq('id', userId)
+      .maybeSingle();
 
-function saveStoredUser(user: AuthUser | null): void {
+    if (!existing) {
+      const { error: upsertErr } = await supabase.from('sellers').upsert(
+        {
+          id: userId,
+          email: email,
+          name: name || 'Vendedor Autenticado',
+          phone: phone || '',
+          agency_name: agencyName || '',
+        },
+        { onConflict: 'id' }
+      );
+
+      if (upsertErr) {
+        console.warn('Upsert seller profile warning:', upsertErr.message);
+      }
+    }
+  } catch (e: any) {
+    console.warn('Could not ensure seller profile in public.sellers:', e?.message || e);
+  }
+};
+
+export const signUpSeller = async (
+  email: string,
+  pass: string,
+  metadata: { name: string; phone?: string; agencyName?: string }
+): Promise<{ user: AuthUser | null; error: string | null }> => {
   try {
-    if (user) {
-      localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
-    } else {
-      localStorage.removeItem(AUTH_USER_KEY);
-    }
-  } catch (e) {
-    console.error('Error saving auth user to localStorage:', e);
-  }
-}
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password: pass,
+      options: {
+        data: {
+          name: metadata.name,
+          phone: metadata.phone || '',
+          agency_name: metadata.agencyName || '',
+        },
+      },
+    });
 
-export const authService = {
-  async getSession(): Promise<AuthState> {
-    const user = getStoredUser();
+    if (error) return { user: null, error: error.message };
+    if (!data.user) return { user: null, error: 'No user data returned.' };
+
+    await ensureSellerProfileExists(
+      data.user.id,
+      email,
+      metadata.name,
+      metadata.phone,
+      metadata.agencyName
+    );
+
+    const authUser: AuthUser = {
+      id: data.user.id,
+      email: data.user.email || email,
+      name: metadata.name,
+      phone: metadata.phone,
+      agencyName: metadata.agencyName,
+    };
+
+    return { user: authUser, error: null };
+  } catch (err: any) {
+    return { user: null, error: err.message || 'Error signing up seller.' };
+  }
+};
+
+export const signInSeller = async (
+  email: string,
+  pass: string
+): Promise<{ user: AuthUser | null; error: string | null }> => {
+  try {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password: pass,
+    });
+
+    if (error) return { user: null, error: error.message };
+    if (!data.user) return { user: null, error: 'No user session established.' };
+
+    await ensureSellerProfileExists(
+      data.user.id,
+      data.user.email || email,
+      data.user.user_metadata?.name,
+      data.user.user_metadata?.phone,
+      data.user.user_metadata?.agency_name
+    );
+
+    const { data: profile } = await supabase
+      .from('sellers')
+      .select('*')
+      .eq('id', data.user.id)
+      .maybeSingle();
+
+    const authUser: AuthUser = {
+      id: data.user.id,
+      email: data.user.email || email,
+      name: profile?.name || data.user.user_metadata?.name || 'Vendedor Autenticado',
+      phone: profile?.phone || data.user.user_metadata?.phone,
+      agencyName: profile?.agency_name || data.user.user_metadata?.agency_name,
+      avatarUrl: profile?.avatar_url || data.user.user_metadata?.avatar_url,
+    };
+
+    return { user: authUser, error: null };
+  } catch (err: any) {
+    return { user: null, error: err.message || 'Error signing in seller.' };
+  }
+};
+
+export const signOutSeller = async (): Promise<{ error: string | null }> => {
+  const { error } = await supabase.auth.signOut();
+  return { error: error ? error.message : null };
+};
+
+export const getCurrentSellerSession = async (): Promise<AuthUser | null> => {
+  try {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) return null;
+
+    await ensureSellerProfileExists(
+      session.user.id,
+      session.user.email || '',
+      session.user.user_metadata?.name,
+      session.user.user_metadata?.phone,
+      session.user.user_metadata?.agency_name
+    );
+
+    const { data: profile } = await supabase
+      .from('sellers')
+      .select('*')
+      .eq('id', session.user.id)
+      .maybeSingle();
+
     return {
-      user,
-      isAuthenticated: !!user,
+      id: session.user.id,
+      email: session.user.email || '',
+      name: profile?.name || session.user.user_metadata?.name || 'Vendedor Autenticado',
+      phone: profile?.phone || session.user.user_metadata?.phone,
+      agencyName: profile?.agency_name || session.user.user_metadata?.agency_name,
+      avatarUrl: profile?.avatar_url || session.user.user_metadata?.avatar_url,
     };
-  },
+  } catch (err) {
+    return null;
+  }
+};
 
-  async signIn(email: string, pass: string): Promise<AuthUser> {
-    // Simulate API delay
-    await new Promise((res) => setTimeout(res, 500));
-
-    if (!email || !pass) {
-      throw new Error('Por favor ingrese su correo electrónico y contraseña.');
+export const onAuthStateChange = (callback: (user: AuthUser | null) => void) => {
+  return supabase.auth.onAuthStateChange(async (event, session) => {
+    if (session?.user) {
+      const user = await getCurrentSellerSession();
+      callback(user);
+    } else {
+      callback(null);
     }
-
-    const user: AuthUser = {
-      id: `usr-${Math.floor(100 + Math.random() * 900)}`,
-      email,
-      name: email.split('@')[0].replace('.', ' '),
-      agencyName: 'Inmobiliaria Propify',
-      avatarUrl: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=256&q=80',
-    };
-
-    saveStoredUser(user);
-    return user;
-  },
-
-  async signUp(name: string, email: string, pass: string, agencyName?: string): Promise<AuthUser> {
-    // Simulate API delay
-    await new Promise((res) => setTimeout(res, 600));
-
-    if (!name || !email || !pass) {
-      throw new Error('Todos los campos obligatorios deben completarse.');
-    }
-
-    if (pass.length < 6) {
-      throw new Error('La contraseña debe tener al menos 6 caracteres.');
-    }
-
-    const user: AuthUser = {
-      id: `usr-${Math.floor(100 + Math.random() * 900)}`,
-      email,
-      name,
-      agencyName: agencyName || 'Agente Independiente',
-      avatarUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=256&q=80',
-    };
-
-    saveStoredUser(user);
-    return user;
-  },
-
-  async signOut(): Promise<void> {
-    saveStoredUser(null);
-  },
+  });
 };
