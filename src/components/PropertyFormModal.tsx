@@ -45,7 +45,7 @@ export const PropertyFormModal: React.FC<PropertyFormModalProps> = ({
   const [country, setCountry] = useState('Argentina');
 
   // Images
-  const [imageUrl1, setImageUrl1] = useState('');
+  const [existingImages, setExistingImages] = useState<string[]>([]);
   const [localFiles, setLocalFiles] = useState<File[]>([]);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -86,7 +86,7 @@ export const PropertyFormModal: React.FC<PropertyFormModalProps> = ({
       setCountryId(propertyToEdit.location.countryId || 'AR');
       setStateId(propertyToEdit.location.stateId);
       setCityId(propertyToEdit.location.cityId);
-      setImageUrl1(propertyToEdit.images[0] || '');
+      setExistingImages(propertyToEdit.images || []);
       setLocalFiles([]);
       setPreviewUrls([]);
 
@@ -126,7 +126,7 @@ export const PropertyFormModal: React.FC<PropertyFormModalProps> = ({
       setCity('CABA (Puerto Madero / Palermo)');
       setProvince('Buenos Aires');
       setCountry('Argentina');
-      setImageUrl1('');
+      setExistingImages([]);
       setLocalFiles([]);
       setPreviewUrls([]);
     }
@@ -147,6 +147,10 @@ export const PropertyFormModal: React.FC<PropertyFormModalProps> = ({
     setPreviewUrls((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const handleRemoveExistingImage = (index: number) => {
+    setExistingImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !description || !address || !countryId) {
@@ -157,7 +161,7 @@ export const PropertyFormModal: React.FC<PropertyFormModalProps> = ({
     setLoading(true);
 
     try {
-      const imagesArray: string[] = [];
+      const imagesArray: string[] = [...existingImages];
 
       // 1. Upload PC local files to Supabase Storage
       if (localFiles.length > 0) {
@@ -169,11 +173,6 @@ export const PropertyFormModal: React.FC<PropertyFormModalProps> = ({
           }
         }
         setIsUploading(false);
-      }
-
-      // 2. Append external URL if provided
-      if (imageUrl1.trim()) {
-        imagesArray.push(imageUrl1.trim());
       }
 
       // Fallback default image if none provided or uploaded
@@ -462,11 +461,26 @@ export const PropertyFormModal: React.FC<PropertyFormModalProps> = ({
               </div>
 
               {/* Previews Grid */}
-              {previewUrls.length > 0 && (
+              {(existingImages.length > 0 || previewUrls.length > 0) && (
                 <div className="grid grid-cols-4 gap-2 pt-2">
+                  {existingImages.map((url, idx) => (
+                    <div key={`existing-${idx}`} className="relative group rounded-xl overflow-hidden border border-indigo-500/50 aspect-video bg-slate-900">
+                      <img src={url} alt={`Existente ${idx}`} className="w-full h-full object-cover" />
+                      <span className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-indigo-600 text-white">Actual</span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveExistingImage(idx)}
+                        className="absolute top-1 right-1 p-1 bg-rose-600 text-white rounded-lg opacity-80 hover:opacity-100 transition-opacity"
+                        title="Eliminar imagen"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
                   {previewUrls.map((url, idx) => (
-                    <div key={idx} className="relative group rounded-xl overflow-hidden border border-slate-300 dark:border-slate-700 aspect-video bg-slate-900">
-                      <img src={url} alt={`Vista previa ${idx}`} className="w-full h-full object-cover" />
+                    <div key={`new-${idx}`} className="relative group rounded-xl overflow-hidden border border-emerald-500/50 aspect-video bg-slate-900">
+                      <img src={url} alt={`Nueva ${idx}`} className="w-full h-full object-cover" />
+                      <span className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-600 text-white">Nueva</span>
                       <button
                         type="button"
                         onClick={() => handleRemoveLocalFile(idx)}
@@ -479,20 +493,6 @@ export const PropertyFormModal: React.FC<PropertyFormModalProps> = ({
                   ))}
                 </div>
               )}
-
-              {/* External Image URL Alternative */}
-              <div>
-                <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
-                  O pegá la URL de una imagen externa (opcional):
-                </label>
-                <input
-                  type="url"
-                  placeholder="https://..."
-                  value={imageUrl1}
-                  onChange={(e) => setImageUrl1(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-200 text-xs rounded-xl px-4 py-2.5 border border-slate-300 dark:border-slate-700 focus:outline-none focus:border-indigo-500"
-                />
-              </div>
             </div>
 
             {/* Dynamic Details Section based on Category */}
