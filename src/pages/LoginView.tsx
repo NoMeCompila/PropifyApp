@@ -13,8 +13,8 @@ export const LoginView: React.FC<LoginViewProps> = ({ onSignIn, onSignUp, onSucc
   const [tabMode, setTabMode] = useState<'login' | 'register'>('login');
 
   // Form states
-  const [email, setEmail] = useState('agente.martinez@propify.com.ar');
-  const [password, setPassword] = useState('123456');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [agencyName, setAgencyName] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
