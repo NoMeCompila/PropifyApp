@@ -121,6 +121,10 @@ export const PropertyDetailView: React.FC<PropertyDetailViewProps> = ({
               <img
                 src={property.images[selectedImageIndex] || property.images[0]}
                 alt={property.title}
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1200&q=80';
+                }}
                 className="w-full h-full object-cover transition-all duration-300"
               />
 
@@ -146,7 +150,15 @@ export const PropertyDetailView: React.FC<PropertyDetailViewProps> = ({
                       selectedImageIndex === idx ? 'border-indigo-500 scale-105' : 'border-slate-300 dark:border-slate-800 opacity-60 hover:opacity-100'
                     }`}
                   >
-                    <img src={img} alt="" className="w-full h-full object-cover" />
+                    <img
+                      src={img}
+                      alt=""
+                      onError={(e) => {
+                        e.currentTarget.onerror = null;
+                        e.currentTarget.src = 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1200&q=80';
+                      }}
+                      className="w-full h-full object-cover"
+                    />
                   </button>
                 ))}
               </div>

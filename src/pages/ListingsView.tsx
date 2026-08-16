@@ -134,6 +134,10 @@ export const ListingsView: React.FC<ListingsViewProps> = ({
                         <img
                           src={p.images[0]}
                           alt=""
+                          onError={(e) => {
+                            e.currentTarget.onerror = null;
+                            e.currentTarget.src = 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80';
+                          }}
                           className="w-14 h-14 rounded-xl object-cover border border-slate-200 dark:border-slate-700 shrink-0"
                         />
                         <div>
@@ -239,6 +243,10 @@ export const ListingsView: React.FC<ListingsViewProps> = ({
                 <img
                   src={p.images[0]}
                   alt=""
+                  onError={(e) => {
+                    e.currentTarget.onerror = null;
+                    e.currentTarget.src = 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80';
+                  }}
                   className="w-20 h-20 rounded-xl object-cover border border-slate-200 dark:border-slate-700 shrink-0"
                 />
                 <div className="flex-1 min-w-0">
