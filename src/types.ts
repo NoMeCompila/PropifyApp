@@ -112,6 +112,7 @@ export interface PropertyFilter {
   maxAreaSqm?: number;
   minBedrooms?: number;
   status?: PropertyStatus | 'all';
+  publicationStatus?: PublicationStatus | 'all';
 }
 
 export interface Inquiry {

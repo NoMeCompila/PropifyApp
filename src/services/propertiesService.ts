@@ -139,6 +139,9 @@ export const getProperties = async (filters?: PropertyFilter): Promise<Property[
       if (filters.maxPrice && filters.maxPrice > 0) {
         query = query.lte('price', filters.maxPrice);
       }
+      if (filters.publicationStatus && filters.publicationStatus !== 'all') {
+        query = query.eq('publication_status', filters.publicationStatus);
+      }
       if (filters.searchQuery?.trim()) {
         const q = `%${filters.searchQuery.trim()}%`;
         query = query.or(`title.ilike.${q},description.ilike.${q},city_name.ilike.${q},address.ilike.${q}`);

@@ -40,8 +40,16 @@ import { PropertyFormModal } from './components/PropertyFormModal';
 import { ToastContainer, ToastMessage, ToastType } from './components/Toast';
 
 export default function App() {
-  const [roleMode, setRoleMode] = useState<UserRoleMode>('buyer');
-  const [activePage, setActivePage] = useState<ActivePage>('catalog');
+  const [roleMode, setRoleMode] = useState<UserRoleMode>(() => {
+    const saved = localStorage.getItem('roleMode');
+    return saved === 'seller' || saved === 'buyer' ? saved : 'buyer';
+  });
+
+  const [activePage, setActivePage] = useState<ActivePage>(() => {
+    const saved = localStorage.getItem('activePage');
+    return (saved as ActivePage) || 'catalog';
+  });
+
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
 
   // Theme state (defaults to 'dark', persists in localStorage under 'theme')
@@ -60,6 +68,14 @@ export default function App() {
       document.documentElement.classList.remove('light');
     }
   }, [theme]);
+
+  useEffect(() => {
+    localStorage.setItem('roleMode', roleMode);
+  }, [roleMode]);
+
+  useEffect(() => {
+    localStorage.setItem('activePage', activePage);
+  }, [activePage]);
 
   const handleToggleTheme = () => {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
@@ -113,6 +129,16 @@ export default function App() {
     // Check initial user session
     getCurrentSellerSession().then((user) => {
       setCurrentUser(user);
+      if (user) {
+        const savedRole = localStorage.getItem('roleMode') as UserRoleMode;
+        if (!savedRole) {
+          setRoleMode('seller');
+        }
+        const savedPage = localStorage.getItem('activePage') as ActivePage;
+        if (!savedPage || savedPage === 'login') {
+          setActivePage('dashboard');
+        }
+      }
     });
 
     // Auth listener
@@ -234,8 +260,9 @@ export default function App() {
       throw new Error(error || 'Error al iniciar sesión');
     }
     setCurrentUser(user);
-    addToast(`¡Bienvenido de nuevo, ${user.name}!`);
+    setRoleMode('seller');
     setActivePage('dashboard');
+    addToast(`¡Bienvenido de nuevo, ${user.name}!`);
     return user;
   };
 
@@ -246,8 +273,9 @@ export default function App() {
       throw new Error(error || 'Error al registrar vendedor');
     }
     setCurrentUser(user);
-    addToast(`¡Cuenta registrada! Bienvenido, ${user.name}.`);
+    setRoleMode('seller');
     setActivePage('dashboard');
+    addToast(`¡Cuenta registrada! Bienvenido, ${user.name}.`);
     return user;
   };
 
@@ -256,6 +284,8 @@ export default function App() {
     setCurrentUser(null);
     setRoleMode('buyer');
     setActivePage('catalog');
+    localStorage.removeItem('roleMode');
+    localStorage.removeItem('activePage');
     addToast('Sesión cerrada correctamente.', 'info');
   };
 
@@ -282,7 +312,7 @@ export default function App() {
       <main className="flex-1">
         {activePage === 'catalog' && (
           <CatalogView
-            properties={properties}
+            properties={properties.filter((p) => p.publicationStatus === 'published')}
             filter={filter}
             onChangeFilter={setFilter}
             onResetFilter={() => setFilter({ category: 'all', type: 'all', status: 'all' })}
@@ -313,6 +343,7 @@ export default function App() {
             onSignUp={handleSignUp}
             onSuccess={(user) => {
               setCurrentUser(user);
+              setRoleMode('seller');
               setActivePage('dashboard');
             }}
           />

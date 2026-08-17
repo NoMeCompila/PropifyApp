@@ -29,6 +29,9 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
 }) => {
   const [layoutMode, setLayoutMode] = useState<'grid' | 'list'>('grid');
 
+  // Strict marketplace filter: only published properties are exposed to buyers
+  const activeProperties = properties.filter((p) => p.publicationStatus === 'published');
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6">
       {/* Hero Banner Header */}
@@ -69,11 +72,11 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
             className="lg:hidden px-4 py-2.5 rounded-xl bg-indigo-600 text-white font-semibold text-xs transition-colors flex items-center gap-2 min-h-[44px]"
           >
             <SlidersHorizontal className="w-4 h-4" />
-            <span>Filtrar ({properties.length})</span>
+            <span>Filtrar ({activeProperties.length})</span>
           </button>
 
           <span className="hidden sm:inline-block text-xs font-semibold text-slate-600 dark:text-slate-400">
-            Mostrando <strong className="text-slate-900 dark:text-white font-extrabold">{properties.length}</strong> publicaciones
+            Mostrando <strong className="text-slate-900 dark:text-white font-extrabold">{activeProperties.length}</strong> publicaciones
           </span>
         </div>
 
@@ -114,13 +117,13 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
             onResetFilter={onResetFilter}
             isMobileDrawerOpen={isMobileFilterOpen}
             onCloseMobileDrawer={onCloseMobileFilter}
-            resultCount={properties.length}
+            resultCount={activeProperties.length}
           />
         </div>
 
         {/* Right Cards List */}
         <div className="lg:col-span-3">
-          {properties.length > 0 ? (
+          {activeProperties.length > 0 ? (
             <div
               className={
                 layoutMode === 'grid'
@@ -128,7 +131,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
                   : 'flex flex-col gap-6'
               }
             >
-              {properties.map((property) => (
+              {activeProperties.map((property) => (
                 <PropertyCard
                   key={property.id}
                   property={property}
