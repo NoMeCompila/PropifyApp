@@ -1,13 +1,6 @@
-import React from 'react';
-import { CountryCode } from '../types';
-import {
-  COUNTRIES,
-  getStatesByCountry,
-  getCitiesByState,
-  getCountryById,
-  getStateById,
-  getCityById,
-} from '../data/locationData';
+import React, { useState, useEffect } from 'react';
+import { Country, State, City, CountryCode } from '../types';
+import { fetchCountries, fetchStates, fetchCities } from '../services/locationService';
 import { Globe, MapPin, Building2 } from 'lucide-react';
 
 export interface LocationCascadeValue {
@@ -38,12 +31,62 @@ export const LocationCascadeSelect: React.FC<LocationCascadeSelectProps> = ({
   compact = false,
   disabled = false,
 }) => {
-  const states = getStatesByCountry(countryId);
-  const cities = getCitiesByState(stateId);
+  const [countries, setCountries] = useState<Country[]>([]);
+  const [states, setStates] = useState<State[]>([]);
+  const [cities, setCities] = useState<City[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  // Load countries on mount
+  useEffect(() => {
+    let isMounted = true;
+    fetchCountries().then((data) => {
+      if (isMounted) {
+        setCountries(data);
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Load states when countryId changes
+  useEffect(() => {
+    let isMounted = true;
+    if (countryId) {
+      fetchStates(countryId).then((data) => {
+        if (isMounted) {
+          setStates(data);
+        }
+      });
+    } else {
+      setStates([]);
+      setCities([]);
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, [countryId]);
+
+  // Load cities when stateId changes
+  useEffect(() => {
+    let isMounted = true;
+    if (stateId) {
+      fetchCities(stateId).then((data) => {
+        if (isMounted) {
+          setCities(data);
+        }
+      });
+    } else {
+      setCities([]);
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, [stateId]);
 
   const handleCountryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newCountryId = (e.target.value as CountryCode) || undefined;
-    const countryObj = getCountryById(newCountryId);
+    const countryObj = countries.find((c) => c.id === newCountryId);
     onChange({
       countryId: newCountryId,
       stateId: undefined,
@@ -56,8 +99,8 @@ export const LocationCascadeSelect: React.FC<LocationCascadeSelectProps> = ({
 
   const handleStateChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newStateId = e.target.value || undefined;
-    const countryObj = getCountryById(countryId);
-    const stateObj = getStateById(newStateId);
+    const countryObj = countries.find((c) => c.id === countryId);
+    const stateObj = states.find((s) => s.id === newStateId);
     onChange({
       countryId,
       stateId: newStateId,
@@ -70,9 +113,9 @@ export const LocationCascadeSelect: React.FC<LocationCascadeSelectProps> = ({
 
   const handleCityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const newCityId = e.target.value || undefined;
-    const countryObj = getCountryById(countryId);
-    const stateObj = getStateById(stateId);
-    const cityObj = getCityById(newCityId);
+    const countryObj = countries.find((c) => c.id === countryId);
+    const stateObj = states.find((s) => s.id === stateId);
+    const cityObj = cities.find((c) => c.id === newCityId);
     onChange({
       countryId,
       stateId,
@@ -99,7 +142,7 @@ export const LocationCascadeSelect: React.FC<LocationCascadeSelectProps> = ({
             className="w-full pl-9 pr-7 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-lg text-xs text-slate-900 dark:text-slate-200 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 disabled:opacity-50 appearance-none cursor-pointer"
           >
             <option value="">Todos los Países</option>
-            {COUNTRIES.map((c) => (
+            {countries.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
               </option>
@@ -165,7 +208,7 @@ export const LocationCascadeSelect: React.FC<LocationCascadeSelectProps> = ({
             className="w-full px-3.5 py-2.5 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl text-sm text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 disabled:opacity-50 appearance-none cursor-pointer"
           >
             <option value="">Seleccionar País...</option>
-            {COUNTRIES.map((c) => (
+            {countries.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
               </option>
