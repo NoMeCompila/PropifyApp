@@ -7,13 +7,10 @@
 
 ---
 
-## 📸 Galería de Capturas de Pantalla
-
-| Vista Principal / Catálogo | Ficha de Propiedad & Reserva |
-| :---: | :---: |
-| *[Agregá aquí la captura del Catálogo: `![Catálogo](ruta/a/catalogo.png)`]* | *[Agregá aquí la captura del Detalle: `![Detalle](ruta/a/detalle.png)`]* |
-| **Dashboard de Vendedor** | **Gestión de Publicaciones & Filtros** |
-| *[Agregá aquí la captura del Dashboard: `![Dashboard](ruta/a/dashboard.png)`]* | *[Agregá aquí la captura de Publicaciones: `![Publicaciones](ruta/a/publicaciones.png)`]* |
+## 📸 Capturas de Pantalla
+<p align="center">
+<img width="1166" height="968" alt="image" src="https://github.com/user-attachments/assets/afb3d5f5-ff87-4b49-943f-cda7979a3ba3" />
+</p>
 
 ---
 
