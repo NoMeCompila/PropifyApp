@@ -39,6 +39,7 @@ export interface SellerInfo {
   phone: string;
   avatarUrl?: string;
   agencyName?: string;
+  matricula?: string;
 }
 
 export type CountryCode = 'AR' | 'UY' | 'PY' | 'BR';
@@ -165,6 +166,7 @@ export interface AuthUser {
   agencyName?: string;
   phone?: string;
   avatarUrl?: string;
+  matricula?: string;
 }
 
 export interface AuthState {

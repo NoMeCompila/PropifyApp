@@ -6,12 +6,13 @@ export const ensureSellerProfileExists = async (
   email: string,
   name?: string,
   phone?: string,
-  agencyName?: string
+  agencyName?: string,
+  matricula?: string
 ) => {
   try {
     const { data: existing } = await supabase
       .from('sellers')
-      .select('id')
+      .select('id, matricula')
       .eq('id', userId)
       .maybeSingle();
 
@@ -23,6 +24,7 @@ export const ensureSellerProfileExists = async (
           name: name || 'Vendedor Autenticado',
           phone: phone || '',
           agency_name: agencyName || '',
+          matricula: matricula || `MAT-${userId.substring(0, 8)}`,
         },
         { onConflict: 'id' }
       );
@@ -30,6 +32,8 @@ export const ensureSellerProfileExists = async (
       if (upsertErr) {
         console.warn('Upsert seller profile warning:', upsertErr.message);
       }
+    } else if (matricula && !existing.matricula) {
+      await supabase.from('sellers').update({ matricula }).eq('id', userId);
     }
   } catch (e: any) {
     console.warn('Could not ensure seller profile in public.sellers:', e?.message || e);
@@ -39,15 +43,20 @@ export const ensureSellerProfileExists = async (
 export const signUpSeller = async (
   email: string,
   pass: string,
-  metadata: { name: string; phone?: string; agencyName?: string }
+  metadata: { name: string; matricula: string; phone?: string; agencyName?: string }
 ): Promise<{ user: AuthUser | null; error: string | null }> => {
   try {
+    if (!metadata.matricula || !metadata.matricula.trim()) {
+      return { user: null, error: 'El número de matrícula es obligatorio.' };
+    }
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password: pass,
       options: {
         data: {
           name: metadata.name,
+          matricula: metadata.matricula.trim(),
           phone: metadata.phone || '',
           agency_name: metadata.agencyName || '',
         },
@@ -62,13 +71,15 @@ export const signUpSeller = async (
       email,
       metadata.name,
       metadata.phone,
-      metadata.agencyName
+      metadata.agencyName,
+      metadata.matricula.trim()
     );
 
     const authUser: AuthUser = {
       id: data.user.id,
       email: data.user.email || email,
       name: metadata.name,
+      matricula: metadata.matricula.trim(),
       phone: metadata.phone,
       agencyName: metadata.agencyName,
     };
@@ -97,7 +108,8 @@ export const signInSeller = async (
       data.user.email || email,
       data.user.user_metadata?.name,
       data.user.user_metadata?.phone,
-      data.user.user_metadata?.agency_name
+      data.user.user_metadata?.agency_name,
+      data.user.user_metadata?.matricula
     );
 
     const { data: profile } = await supabase
@@ -110,6 +122,7 @@ export const signInSeller = async (
       id: data.user.id,
       email: data.user.email || email,
       name: profile?.name || data.user.user_metadata?.name || 'Vendedor Autenticado',
+      matricula: profile?.matricula || data.user.user_metadata?.matricula,
       phone: profile?.phone || data.user.user_metadata?.phone,
       agencyName: profile?.agency_name || data.user.user_metadata?.agency_name,
       avatarUrl: profile?.avatar_url || data.user.user_metadata?.avatar_url,
@@ -136,7 +149,8 @@ export const getCurrentSellerSession = async (): Promise<AuthUser | null> => {
       session.user.email || '',
       session.user.user_metadata?.name,
       session.user.user_metadata?.phone,
-      session.user.user_metadata?.agency_name
+      session.user.user_metadata?.agency_name,
+      session.user.user_metadata?.matricula
     );
 
     const { data: profile } = await supabase
@@ -149,6 +163,7 @@ export const getCurrentSellerSession = async (): Promise<AuthUser | null> => {
       id: session.user.id,
       email: session.user.email || '',
       name: profile?.name || session.user.user_metadata?.name || 'Vendedor Autenticado',
+      matricula: profile?.matricula || session.user.user_metadata?.matricula,
       phone: profile?.phone || session.user.user_metadata?.phone,
       agencyName: profile?.agency_name || session.user.user_metadata?.agency_name,
       avatarUrl: profile?.avatar_url || session.user.user_metadata?.avatar_url,

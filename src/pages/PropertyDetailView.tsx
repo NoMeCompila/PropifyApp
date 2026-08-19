@@ -10,6 +10,7 @@ import {
   User,
   Send,
   CheckCircle2,
+  BadgeCheck,
 } from 'lucide-react';
 import { Property } from '../types';
 import { formatPrice, formatArea, getPropertyTypeLabel, getStatusBadgeInfo } from '../utils/formatters';
@@ -323,6 +324,12 @@ export const PropertyDetailView: React.FC<PropertyDetailViewProps> = ({
               <div>
                 <h4 className="text-sm font-bold text-slate-900 dark:text-white">{property.seller.name}</h4>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400">{property.seller.agencyName || 'Agente Inmobiliario'}</p>
+                {property.seller.matricula && (
+                  <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/60 text-[10px] font-semibold">
+                    <BadgeCheck className="w-3 h-3 text-indigo-500 dark:text-indigo-400" />
+                    <span>Mat. {property.seller.matricula}</span>
+                  </span>
+                )}
               </div>
             </div>
 

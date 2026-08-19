@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { Building2, Mail, Lock, User, Building, LogIn, UserPlus, ShieldCheck } from 'lucide-react';
+import { Building2, Mail, Lock, User, Building, LogIn, UserPlus, ShieldCheck, BadgeCheck } from 'lucide-react';
 import { AuthUser } from '../types';
 
 interface LoginViewProps {
   onSignIn: (email: string, pass: string) => Promise<AuthUser>;
-  onSignUp: (name: string, email: string, pass: string, agencyName?: string) => Promise<AuthUser>;
+  onSignUp: (name: string, email: string, pass: string, matricula: string, agencyName?: string) => Promise<AuthUser>;
   onSuccess: (user: AuthUser) => void;
 }
 
@@ -16,6 +16,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onSignIn, onSignUp, onSucc
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [matricula, setMatricula] = useState('');
   const [agencyName, setAgencyName] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [loading, setLoading] = useState(false);
@@ -23,6 +24,12 @@ export const LoginView: React.FC<LoginViewProps> = ({ onSignIn, onSignUp, onSucc
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
+
+    if (tabMode === 'register' && !matricula.trim()) {
+      setErrorMsg('El número de matrícula profesional es obligatorio.');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -30,7 +37,7 @@ export const LoginView: React.FC<LoginViewProps> = ({ onSignIn, onSignUp, onSucc
         const user = await onSignIn(email, password);
         onSuccess(user);
       } else {
-        const user = await onSignUp(name, email, password, agencyName);
+        const user = await onSignUp(name, email, password, matricula.trim(), agencyName);
         onSuccess(user);
       }
     } catch (err: any) {
@@ -100,20 +107,37 @@ export const LoginView: React.FC<LoginViewProps> = ({ onSignIn, onSignUp, onSucc
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
           {tabMode === 'register' && (
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Nombre y Apellido *</label>
-              <div className="relative">
-                <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5 pointer-events-none" />
-                <input
-                  type="text"
-                  required
-                  placeholder="Ej. Roberto Gómez"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-200 text-sm rounded-xl pl-10 pr-4 py-3 border border-slate-300 dark:border-slate-700 focus:outline-none focus:border-indigo-500 min-h-[48px]"
-                />
+            <>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Nombre y Apellido *</label>
+                <div className="relative">
+                  <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5 pointer-events-none" />
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ej. Roberto Gómez"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-200 text-sm rounded-xl pl-10 pr-4 py-3 border border-slate-300 dark:border-slate-700 focus:outline-none focus:border-indigo-500 min-h-[48px]"
+                  />
+                </div>
               </div>
-            </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Matrícula Profesional / Colegiado *</label>
+                <div className="relative">
+                  <BadgeCheck className="w-4 h-4 text-indigo-500 absolute left-3.5 top-3.5 pointer-events-none" />
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ej. CUCICBA 7842 / CPMCLZ 4310"
+                    value={matricula}
+                    onChange={(e) => setMatricula(e.target.value)}
+                    className="w-full bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-200 text-sm rounded-xl pl-10 pr-4 py-3 border border-slate-300 dark:border-slate-700 focus:outline-none focus:border-indigo-500 min-h-[48px]"
+                  />
+                </div>
+              </div>
+            </>
           )}
 
           <div>

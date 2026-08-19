@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { Trees, Building2, MessageSquare, Calendar, ShieldCheck, Plus, ArrowRight, TrendingUp } from 'lucide-react';
+import { Trees, Building2, MessageSquare, Calendar, ShieldCheck, Plus, ArrowRight, TrendingUp, BadgeCheck } from 'lucide-react';
 import { Property, Inquiry, VisitSchedule, Reservation, AuthUser } from '../types';
 
 interface DashboardViewProps {
@@ -37,9 +37,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight mt-1">
             ¡Hola, {currentUser.name}!
           </h1>
-          <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1">
-            {currentUser.agencyName || 'Agente Inmobiliario'} &bull; Estado del Mercado Inmobiliario y Terrenos
-          </p>
+          <div className="flex items-center gap-2 flex-wrap mt-1.5">
+            <span className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 font-medium">
+              {currentUser.agencyName || 'Agente Inmobiliario'}
+            </span>
+            {currentUser.matricula && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/60 font-semibold text-xs shadow-xs">
+                <BadgeCheck className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
+                <span>Mat. {currentUser.matricula}</span>
+              </span>
+            )}
+          </div>
         </div>
 
         <button

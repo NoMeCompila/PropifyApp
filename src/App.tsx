@@ -266,8 +266,8 @@ export default function App() {
     return user;
   };
 
-  const handleSignUp = async (name: string, email: string, pass: string, agencyName?: string) => {
-    const { user, error } = await signUpSeller(email, pass, { name, agencyName });
+  const handleSignUp = async (name: string, email: string, pass: string, matricula: string, agencyName?: string) => {
+    const { user, error } = await signUpSeller(email, pass, { name, matricula, agencyName });
     if (error || !user) {
       addToast(error || 'Error al registrar vendedor.', 'error');
       throw new Error(error || 'Error al registrar vendedor');

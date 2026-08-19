@@ -69,6 +69,7 @@ export const mapRowToProperty = (row: any): Property => {
     phone: row.sellers?.phone || '+54 9 11 4000-8800',
     agencyName: row.sellers?.agency_name || 'Propify App',
     avatarUrl: row.sellers?.avatar_url,
+    matricula: row.sellers?.matricula,
   };
 
   return {
@@ -108,7 +109,7 @@ export const getProperties = async (filters?: PropertyFilter): Promise<Property[
   try {
     let query = supabase
       .from('properties')
-      .select('*, sellers(name, email, phone, agency_name, avatar_url)')
+      .select('*, sellers(name, email, phone, agency_name, avatar_url, matricula)')
       .order('created_at', { ascending: false });
 
     if (filters) {
@@ -166,7 +167,7 @@ export const getPropertyById = async (id: string): Promise<Property | null> => {
   try {
     const { data, error } = await supabase
       .from('properties')
-      .select('*, sellers(name, email, phone, agency_name, avatar_url)')
+      .select('*, sellers(name, email, phone, agency_name, avatar_url, matricula)')
       .eq('id', id)
       .maybeSingle();
 
