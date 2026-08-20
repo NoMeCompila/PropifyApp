@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Property, PropertyFilter, Inquiry, VisitSchedule, Reservation, AuthUser, ThemeMode } from './types';
 import {
   getProperties,
+  getPropertyById,
   createProperty,
   updateProperty,
   deleteProperty,
@@ -52,6 +53,10 @@ export default function App() {
   });
 
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(() => {
+    return localStorage.getItem('selectedPropertyId');
+  });
+  const [isLoadingProperty, setIsLoadingProperty] = useState(false);
 
   // Theme state (defaults to 'dark', persists in localStorage under 'theme')
   const [theme, setTheme] = useState<ThemeMode>(() => {
@@ -77,6 +82,14 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('activePage', activePage);
   }, [activePage]);
+
+  useEffect(() => {
+    if (selectedPropertyId) {
+      localStorage.setItem('selectedPropertyId', selectedPropertyId);
+    } else {
+      localStorage.removeItem('selectedPropertyId');
+    }
+  }, [selectedPropertyId]);
 
   const handleToggleTheme = () => {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
@@ -174,10 +187,66 @@ export default function App() {
     loadData();
   }, [filter]);
 
+  // Rehydrate selectedProperty on initial load or page refresh if activePage is 'detail'
+  useEffect(() => {
+    let isMounted = true;
+
+    const rehydrateProperty = async () => {
+      if (activePage === 'detail' && selectedPropertyId && !selectedProperty) {
+        // 1. Try finding in loaded properties array
+        const found = properties.find((p) => p.id === selectedPropertyId);
+        if (found) {
+          setSelectedProperty(found);
+          return;
+        }
+
+        // 2. Fetch directly from Supabase by ID
+        setIsLoadingProperty(true);
+        try {
+          const fetched = await getPropertyById(selectedPropertyId);
+          if (isMounted) {
+            if (fetched) {
+              setSelectedProperty(fetched);
+            } else if (properties.length > 0) {
+              // Property no longer exists in Supabase, fallback safely to catalog
+              setSelectedProperty(null);
+              setSelectedPropertyId(null);
+              localStorage.removeItem('selectedPropertyId');
+              setActivePage('catalog');
+              addToast('No se encontró la propiedad solicitada.', 'info');
+            }
+          }
+        } catch (err) {
+          console.error('Error rehydrating property:', err);
+        } finally {
+          if (isMounted) {
+            setIsLoadingProperty(false);
+          }
+        }
+      }
+    };
+
+    rehydrateProperty();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [activePage, selectedPropertyId, selectedProperty, properties]);
+
   // Handlers
   const handleSelectProperty = (property: Property) => {
     setSelectedProperty(property);
+    setSelectedPropertyId(property.id);
+    localStorage.setItem('selectedPropertyId', property.id);
     setActivePage('detail');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleBackFromDetail = () => {
+    setSelectedProperty(null);
+    setSelectedPropertyId(null);
+    localStorage.removeItem('selectedPropertyId');
+    setActivePage(roleMode === 'seller' && currentUser ? 'dashboard' : 'catalog');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -329,14 +398,23 @@ export default function App() {
           />
         )}
 
-        {activePage === 'detail' && selectedProperty && (
-          <PropertyDetailView
-            property={selectedProperty}
-            onBack={() => setActivePage('catalog')}
-            onOpenScheduleVisit={() => setIsScheduleVisitOpen(true)}
-            onOpenReservation={() => setIsReservationOpen(true)}
-            onSubmitInquiry={handleInquirySubmit}
-          />
+        {activePage === 'detail' && (
+          selectedProperty ? (
+            <PropertyDetailView
+              property={selectedProperty}
+              onBack={handleBackFromDetail}
+              onOpenScheduleVisit={() => setIsScheduleVisitOpen(true)}
+              onOpenReservation={() => setIsReservationOpen(true)}
+              onSubmitInquiry={handleInquirySubmit}
+            />
+          ) : (
+            <div className="max-w-7xl mx-auto px-4 py-28 flex flex-col items-center justify-center text-center space-y-4">
+              <div className="w-12 h-12 border-4 border-indigo-500/20 border-t-indigo-600 rounded-full animate-spin" />
+              <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                Cargando detalles de la propiedad...
+              </p>
+            </div>
+          )
         )}
 
         {activePage === 'login' && (
