@@ -38,6 +38,7 @@ import { ScheduleVisitModal } from './components/ScheduleVisitModal';
 import { ReservationModal } from './components/ReservationModal';
 import { PropertyFormModal } from './components/PropertyFormModal';
 import { ToastContainer, ToastMessage, ToastType } from './components/Toast';
+import { FooterBar } from './components/FooterBar';
 
 export default function App() {
   const [roleMode, setRoleMode] = useState<UserRoleMode>(() => {
@@ -412,6 +413,9 @@ export default function App() {
           />
         )}
       </main>
+
+      {/* Universal Footer */}
+      <FooterBar currentUser={currentUser} />
 
       {/* Mobile Fixed Bottom Navigation Bar */}
       <BottomNavBar
