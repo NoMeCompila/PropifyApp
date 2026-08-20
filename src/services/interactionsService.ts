@@ -182,6 +182,30 @@ export const updateVisitStatus = async (
   }
 };
 
+export const getPropertyConfirmedVisits = async (
+  propertyId: string,
+  date?: string
+): Promise<string[]> => {
+  try {
+    let query = supabase
+      .from('visit_schedules')
+      .select('time_slot')
+      .eq('property_id', propertyId)
+      .eq('status', 'confirmed');
+
+    if (date) {
+      query = query.eq('date', date);
+    }
+
+    const { data, error } = await query;
+    if (error || !data) return [];
+
+    return data.map((row: any) => row.time_slot);
+  } catch (err) {
+    return [];
+  }
+};
+
 // RESERVATIONS
 export const createReservation = async (
   reservation: Omit<Reservation, 'id' | 'createdAt' | 'status'>

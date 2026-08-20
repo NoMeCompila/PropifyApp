@@ -226,9 +226,10 @@ export default function App() {
   const handleScheduleVisitSubmit = async (visitData: any) => {
     const newVisit = await scheduleVisit(visitData);
     if (newVisit) {
-      addToast('¡Solicitud de visita registrada! El vendedor se contactará en breve.');
+      addToast('Reserva Exitosa', 'success');
     } else {
-      addToast('No se pudo agendar la visita.', 'error');
+      addToast('Reserva fallida, intente nuevamente', 'error');
+      throw new Error('Reserva fallida');
     }
     await loadData();
   };
