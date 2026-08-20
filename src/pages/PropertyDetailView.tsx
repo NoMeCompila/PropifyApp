@@ -15,6 +15,7 @@ import {
 import { Property } from '../types';
 import { formatPrice, formatArea, getPropertyTypeLabel, getStatusBadgeInfo } from '../utils/formatters';
 import { createWhatsAppInquiryLink } from '../utils/whatsappHelpers';
+import { PropertyMapView } from '../components/PropertyMapView';
 
 interface PropertyDetailViewProps {
   property: Property;
@@ -272,6 +273,20 @@ export const PropertyDetailView: React.FC<PropertyDetailViewProps> = ({
               <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-line">{property.description}</p>
             </div>
           </div>
+
+          {/* Google Maps Location Interactive Section */}
+          {property.location.showLocation !== false && (
+            <PropertyMapView
+              showLocation={property.location.showLocation}
+              mapsUrl={property.location.mapsUrl}
+              lat={property.location.lat}
+              lng={property.location.lng}
+              address={property.location.address}
+              city={property.location.city}
+              province={property.location.province}
+              title={property.title}
+            />
+          )}
         </div>
 
         {/* Right Column: Actions & Contact Seller Widget */}

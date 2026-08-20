@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Building2, Trees, Home, MapPin, Upload, Image as ImageIcon, Trash2 } from 'lucide-react';
+import { X, Building2, Trees, Home, MapPin, Upload, Image as ImageIcon, Trash2, Globe2 } from 'lucide-react';
 import { Property, PropertyCategory, PropertyType, Currency, PublicationStatus, PropertyStatus, CountryCode } from '../types';
 import { LocationCascadeSelect } from './LocationCascadeSelect';
 import { uploadPropertyImage } from '../services/propertiesService';
+import { extractCoordinatesFromGoogleMapsUrl } from '../utils/mapsHelpers';
 
 interface PropertyFormModalProps {
   propertyToEdit?: Property | null;
@@ -43,6 +44,8 @@ export const PropertyFormModal: React.FC<PropertyFormModalProps> = ({
   const [city, setCity] = useState('CABA (Puerto Madero / Palermo)');
   const [province, setProvince] = useState('Buenos Aires');
   const [country, setCountry] = useState('Argentina');
+  const [showLocation, setShowLocation] = useState<boolean>(true);
+  const [mapsUrl, setMapsUrl] = useState<string>('');
 
   // Images
   const [existingImages, setExistingImages] = useState<string[]>([]);
@@ -86,6 +89,8 @@ export const PropertyFormModal: React.FC<PropertyFormModalProps> = ({
       setCountryId(propertyToEdit.location.countryId || 'AR');
       setStateId(propertyToEdit.location.stateId);
       setCityId(propertyToEdit.location.cityId);
+      setShowLocation(propertyToEdit.location.showLocation !== undefined ? propertyToEdit.location.showLocation : true);
+      setMapsUrl(propertyToEdit.location.mapsUrl || '');
       setExistingImages(propertyToEdit.images || []);
       setLocalFiles([]);
       setPreviewUrls([]);
@@ -126,9 +131,24 @@ export const PropertyFormModal: React.FC<PropertyFormModalProps> = ({
       setCity('CABA (Puerto Madero / Palermo)');
       setProvince('Buenos Aires');
       setCountry('Argentina');
+      setShowLocation(true);
+      setMapsUrl('');
       setExistingImages([]);
       setLocalFiles([]);
       setPreviewUrls([]);
+      setBedrooms(3);
+      setBathrooms(2);
+      setParkingSpaces(1);
+      setCoveredAreaSqm(150);
+      setTotalAreaSqm(500);
+      setZoning('Residencial R1');
+      setTopography('flat');
+      setAccessType('paved');
+      setWater(true);
+      setElectricity(true);
+      setSewage(true);
+      setGas(true);
+      setInternet(true);
     }
   }, [propertyToEdit, isOpen]);
 
@@ -180,6 +200,17 @@ export const PropertyFormModal: React.FC<PropertyFormModalProps> = ({
         imagesArray.push('https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1200&q=80');
       }
 
+      let lat = propertyToEdit?.location.lat;
+      let lng = propertyToEdit?.location.lng;
+
+      if (showLocation && mapsUrl.trim()) {
+        const extracted = extractCoordinatesFromGoogleMapsUrl(mapsUrl);
+        if (extracted) {
+          lat = extracted.lat;
+          lng = extracted.lng;
+        }
+      }
+
       const payload: Omit<Property, 'id' | 'createdAt' | 'updatedAt'> = {
         title,
         description,
@@ -197,6 +228,10 @@ export const PropertyFormModal: React.FC<PropertyFormModalProps> = ({
           countryId,
           stateId,
           cityId,
+          lat,
+          lng,
+          showLocation,
+          mapsUrl: showLocation && mapsUrl.trim() ? mapsUrl.trim() : undefined,
         },
         images: imagesArray,
         seller: {
@@ -432,6 +467,42 @@ export const PropertyFormModal: React.FC<PropertyFormModalProps> = ({
                   onChange={(e) => setAddress(e.target.value)}
                   className="w-full bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-200 text-sm rounded-xl px-4 py-3 border border-slate-300 dark:border-slate-700 focus:outline-none focus:border-indigo-500 min-h-[48px]"
                 />
+              </div>
+
+              {/* Google Maps / Location Sharing Options */}
+              <div className="space-y-3 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700">
+                <div className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    id="showLocationToggle"
+                    checked={showLocation}
+                    onChange={(e) => setShowLocation(e.target.checked)}
+                    className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 cursor-pointer"
+                  />
+                  <label htmlFor="showLocationToggle" className="text-xs font-semibold text-slate-800 dark:text-slate-200 cursor-pointer">
+                    Mostrar mapa interactivo de ubicación pública del inmueble
+                  </label>
+                </div>
+
+                {showLocation && (
+                  <div className="space-y-1.5 pt-2 border-t border-slate-200 dark:border-slate-700">
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                      <Globe2 className="w-3.5 h-3.5 text-indigo-500" />
+                      <span>Enlace de Google Maps (URL / Compartir ubicación) *</span>
+                    </label>
+                    <input
+                      type="url"
+                      required={showLocation}
+                      placeholder="https://maps.app.goo.gl/... o https://www.google.com/maps/@..."
+                      value={mapsUrl}
+                      onChange={(e) => setMapsUrl(e.target.value)}
+                      className="w-full bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-200 text-sm rounded-xl px-4 py-3 border border-slate-300 dark:border-slate-700 focus:outline-none focus:border-indigo-500 min-h-[48px]"
+                    />
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                      Pegá el enlace de Google Maps del inmueble. El sistema extraerá automáticamente las coordenadas para mostrar el mapa en la ficha de detalle.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
 

@@ -92,6 +92,8 @@ export const mapRowToProperty = (row: any): Property => {
       cityId: row.city_id,
       lat: row.lat ? Number(row.lat) : undefined,
       lng: row.lng ? Number(row.lng) : undefined,
+      showLocation: row.show_location !== undefined ? Boolean(row.show_location) : true,
+      mapsUrl: row.maps_url || undefined,
     },
     images: Array.isArray(row.images) && row.images.length > 0
       ? row.images
@@ -259,6 +261,8 @@ export const createProperty = async (
       city_id: validCityId,
       lat: property.location.lat || null,
       lng: property.location.lng || null,
+      show_location: property.location.showLocation !== undefined ? property.location.showLocation : true,
+      maps_url: property.location.mapsUrl || null,
       images: property.images || [],
       featured: property.featured || false,
 
@@ -354,6 +358,10 @@ export const updateProperty = async (
       if (validCountryId !== undefined) payload.country_id = validCountryId;
       if (validStateId !== undefined) payload.state_id = validStateId;
       if (validCityId !== undefined) payload.city_id = validCityId;
+      if (property.location.lat !== undefined) payload.lat = property.location.lat;
+      if (property.location.lng !== undefined) payload.lng = property.location.lng;
+      if (property.location.showLocation !== undefined) payload.show_location = property.location.showLocation;
+      if (property.location.mapsUrl !== undefined) payload.maps_url = property.location.mapsUrl;
     }
 
     if (property.landDetails) {

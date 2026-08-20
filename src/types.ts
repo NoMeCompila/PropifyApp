@@ -88,6 +88,8 @@ export interface Property {
     cityId?: string;
     lat?: number;
     lng?: number;
+    showLocation?: boolean;
+    mapsUrl?: string;
   };
   images: string[];
   seller: SellerInfo;
