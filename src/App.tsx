@@ -450,6 +450,7 @@ export default function App() {
               visits={visits}
               reservations={reservations}
               onNavigate={setActivePage}
+              onNavigateToInteractions={handleNavigateToInteractions}
               onOpenCreatePropertyModal={() => {
                 setPropertyToEdit(null);
                 setIsPropertyFormOpen(true);
@@ -476,6 +477,7 @@ export default function App() {
             visits={visits}
             reservations={reservations}
             onNavigate={setActivePage}
+            onNavigateToInteractions={handleNavigateToInteractions}
             onOpenCreatePropertyModal={() => {
               setPropertyToEdit(null);
               setIsPropertyFormOpen(true);

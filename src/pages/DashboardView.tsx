@@ -10,6 +10,7 @@ interface DashboardViewProps {
   visits: VisitSchedule[];
   reservations: Reservation[];
   onNavigate: (page: any) => void;
+  onNavigateToInteractions?: (tab: 'inquiries' | 'visits' | 'reservations', propertyId?: string) => void;
   onOpenCreatePropertyModal: () => void;
 }
 
@@ -20,6 +21,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   visits,
   reservations,
   onNavigate,
+  onNavigateToInteractions,
   onOpenCreatePropertyModal,
 }) => {
   const publishedCount = properties.filter((p) => p.publicationStatus === 'published').length;
@@ -27,6 +29,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const unreadInquiriesCount = inquiries.filter((i) => !i.read).length;
   const pendingVisitsCount = visits.filter((v) => v.status === 'pending').length;
   const pendingReservationsCount = reservations.filter((r) => r.status === 'pending_approval').length;
+
+  const handleGoToInteractions = (tab: 'inquiries' | 'visits' | 'reservations') => {
+    if (onNavigateToInteractions) {
+      onNavigateToInteractions(tab);
+    } else {
+      onNavigate('interactions');
+    }
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-8 pb-24 md:pb-12">
@@ -87,7 +97,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         {/* Metric 2: Pending Inquiries */}
         <motion.div
           whileHover={{ y: -3 }}
-          onClick={() => onNavigate('interactions')}
+          onClick={() => handleGoToInteractions('inquiries')}
           className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 cursor-pointer hover:border-cyan-500/50 transition-all shadow-sm dark:shadow-lg space-y-3"
         >
           <div className="flex items-center justify-between">
@@ -111,7 +121,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         {/* Metric 3: Pending Visits */}
         <motion.div
           whileHover={{ y: -3 }}
-          onClick={() => onNavigate('interactions')}
+          onClick={() => handleGoToInteractions('visits')}
           className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 cursor-pointer hover:border-emerald-500/50 transition-all shadow-sm dark:shadow-lg space-y-3"
         >
           <div className="flex items-center justify-between">
@@ -135,7 +145,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         {/* Metric 4: Reservations */}
         <motion.div
           whileHover={{ y: -3 }}
-          onClick={() => onNavigate('interactions')}
+          onClick={() => handleGoToInteractions('reservations')}
           className="bg-white dark:bg-slate-900/90 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 cursor-pointer hover:border-indigo-500/50 transition-all shadow-sm dark:shadow-lg space-y-3"
         >
           <div className="flex items-center justify-between">
@@ -171,7 +181,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
 
         <div
-          onClick={() => onNavigate('interactions')}
+          onClick={() => handleGoToInteractions('inquiries')}
           className="bg-white dark:bg-gradient-to-br dark:from-slate-900 dark:to-cyan-950/60 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 cursor-pointer hover:border-cyan-500/40 transition-all shadow-sm dark:shadow-xl group space-y-3"
         >
           <div className="w-12 h-12 rounded-2xl bg-cyan-600/20 border border-cyan-500/30 flex items-center justify-center text-cyan-600 dark:text-cyan-400">
@@ -187,7 +197,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
 
         <div
-          onClick={() => onNavigate('interactions')}
+          onClick={() => handleGoToInteractions('visits')}
           className="bg-white dark:bg-gradient-to-br dark:from-slate-900 dark:to-emerald-950/60 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 cursor-pointer hover:border-emerald-500/40 transition-all shadow-sm dark:shadow-xl group space-y-3"
         >
           <div className="w-12 h-12 rounded-2xl bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
