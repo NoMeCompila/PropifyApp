@@ -442,15 +442,30 @@ export default function App() {
         )}
 
         {activePage === 'login' && (
-          <LoginView
-            onSignIn={handleSignIn}
-            onSignUp={handleSignUp}
-            onSuccess={(user) => {
-              setCurrentUser(user);
-              setRoleMode('seller');
-              setActivePage('dashboard');
-            }}
-          />
+          currentUser ? (
+            <DashboardView
+              currentUser={currentUser}
+              properties={properties}
+              inquiries={inquiries}
+              visits={visits}
+              reservations={reservations}
+              onNavigate={setActivePage}
+              onOpenCreatePropertyModal={() => {
+                setPropertyToEdit(null);
+                setIsPropertyFormOpen(true);
+              }}
+            />
+          ) : (
+            <LoginView
+              onSignIn={handleSignIn}
+              onSignUp={handleSignUp}
+              onSuccess={(user) => {
+                setCurrentUser(user);
+                setRoleMode('seller');
+                setActivePage('dashboard');
+              }}
+            />
+          )
         )}
 
         {activePage === 'dashboard' && currentUser && (
@@ -469,54 +484,78 @@ export default function App() {
         )}
 
         {activePage === 'listings' && (
-          <ListingsView
-            properties={properties}
-            onOpenCreateModal={() => {
-              setPropertyToEdit(null);
-              setIsPropertyFormOpen(true);
-            }}
-            onOpenEditModal={(prop) => {
-              setPropertyToEdit(prop);
-              setIsPropertyFormOpen(true);
-            }}
-            onDeleteProperty={handleDeleteProperty}
-            onToggleStatus={handleTogglePublicationStatus}
-            onSelectProperty={handleSelectProperty}
-          />
+          currentUser ? (
+            <ListingsView
+              properties={properties}
+              onOpenCreateModal={() => {
+                setPropertyToEdit(null);
+                setIsPropertyFormOpen(true);
+              }}
+              onOpenEditModal={(prop) => {
+                setPropertyToEdit(prop);
+                setIsPropertyFormOpen(true);
+              }}
+              onDeleteProperty={handleDeleteProperty}
+              onToggleStatus={handleTogglePublicationStatus}
+              onSelectProperty={handleSelectProperty}
+            />
+          ) : (
+            <LoginView
+              onSignIn={handleSignIn}
+              onSignUp={handleSignUp}
+              onSuccess={(user) => {
+                setCurrentUser(user);
+                setRoleMode('seller');
+                setActivePage('listings');
+              }}
+            />
+          )
         )}
 
         {activePage === 'interactions' && (
-          <InteractionsView
-            inquiries={inquiries}
-            visits={visits}
-            reservations={reservations}
-            initialTab={interactionsInitialTab}
-            initialPropertyFilter={interactionsPropertyFilter}
-            properties={properties}
-            onClearPropertyFilter={() => setInteractionsPropertyFilter(null)}
-            onToggleInquiryRead={async (id) => {
-              const inq = inquiries.find((i) => i.id === id);
-              if (inq) {
-                await toggleInquiryReadStatus(id, inq.read);
+          currentUser ? (
+            <InteractionsView
+              inquiries={inquiries}
+              visits={visits}
+              reservations={reservations}
+              initialTab={interactionsInitialTab}
+              initialPropertyFilter={interactionsPropertyFilter}
+              properties={properties}
+              onClearPropertyFilter={() => setInteractionsPropertyFilter(null)}
+              onToggleInquiryRead={async (id) => {
+                const inq = inquiries.find((i) => i.id === id);
+                if (inq) {
+                  await toggleInquiryReadStatus(id, inq.read);
+                  await loadData();
+                }
+              }}
+              onArchiveInquiry={async (id) => {
+                await archiveInquiry(id);
+                addToast('Consulta archivada.');
                 await loadData();
-              }
-            }}
-            onArchiveInquiry={async (id) => {
-              await archiveInquiry(id);
-              addToast('Consulta archivada.');
-              await loadData();
-            }}
-            onUpdateVisitStatus={async (id, status) => {
-              await updateVisitStatus(id, status);
-              addToast(`Visita marcada como ${status === 'confirmed' ? 'Confirmada' : 'Rechazada'}.`);
-              await loadData();
-            }}
-            onUpdateReservationStatus={async (id, status) => {
-              await updateReservationStatus(id, status);
-              addToast(`Reserva ${status === 'approved' ? 'Aprobada' : 'Rechazada'}.`);
-              await loadData();
-            }}
-          />
+              }}
+              onUpdateVisitStatus={async (id, status) => {
+                await updateVisitStatus(id, status);
+                addToast(`Visita marcada como ${status === 'confirmed' ? 'Confirmada' : 'Rechazada'}.`);
+                await loadData();
+              }}
+              onUpdateReservationStatus={async (id, status) => {
+                await updateReservationStatus(id, status);
+                addToast(`Reserva ${status === 'approved' ? 'Aprobada' : 'Rechazada'}.`);
+                await loadData();
+              }}
+            />
+          ) : (
+            <LoginView
+              onSignIn={handleSignIn}
+              onSignUp={handleSignUp}
+              onSuccess={(user) => {
+                setCurrentUser(user);
+                setRoleMode('seller');
+                setActivePage('interactions');
+              }}
+            />
+          )
         )}
       </main>
 
@@ -527,7 +566,9 @@ export default function App() {
       <BottomNavBar
         roleMode={roleMode}
         activePage={activePage}
+        currentUser={currentUser}
         onNavigate={setActivePage}
+        onSignOut={handleSignOut}
         onOpenMobileFilter={() => setIsMobileFilterOpen(true)}
         unreadCount={inquiries.filter((i) => !i.read).length}
         theme={theme}
