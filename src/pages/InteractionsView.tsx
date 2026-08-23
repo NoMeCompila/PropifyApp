@@ -1,12 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { MessageSquare, Calendar, ShieldCheck, Mail, Phone, CheckCircle2, XCircle, Archive, ExternalLink } from 'lucide-react';
-import { Inquiry, VisitSchedule, Reservation } from '../types';
+import { MessageSquare, Calendar, ShieldCheck, Mail, Phone, CheckCircle2, XCircle, Archive, ExternalLink, Filter, X } from 'lucide-react';
+import { Inquiry, VisitSchedule, Reservation, Property } from '../types';
 
 interface InteractionsViewProps {
   inquiries: Inquiry[];
   visits: VisitSchedule[];
   reservations: Reservation[];
+  initialTab?: 'inquiries' | 'visits' | 'reservations';
+  initialPropertyFilter?: string | null;
+  properties?: Property[];
+  onClearPropertyFilter?: () => void;
   onToggleInquiryRead: (id: string) => Promise<void>;
   onArchiveInquiry: (id: string) => Promise<void>;
   onUpdateVisitStatus: (id: string, status: 'confirmed' | 'declined') => Promise<void>;
@@ -17,21 +21,80 @@ export const InteractionsView: React.FC<InteractionsViewProps> = ({
   inquiries,
   visits,
   reservations,
+  initialTab = 'inquiries',
+  initialPropertyFilter = null,
+  properties = [],
+  onClearPropertyFilter,
   onToggleInquiryRead,
   onArchiveInquiry,
   onUpdateVisitStatus,
   onUpdateReservationStatus,
 }) => {
-  const [activeTab, setActiveTab] = useState<'inquiries' | 'visits' | 'reservations'>('inquiries');
+  const [activeTab, setActiveTab] = useState<'inquiries' | 'visits' | 'reservations'>(initialTab);
+  const [propertyFilter, setPropertyFilter] = useState<string | null>(initialPropertyFilter);
+
+  useEffect(() => {
+    if (initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab]);
+
+  useEffect(() => {
+    setPropertyFilter(initialPropertyFilter);
+  }, [initialPropertyFilter]);
+
+  const handleClearFilter = () => {
+    setPropertyFilter(null);
+    onClearPropertyFilter?.();
+  };
+
+  const filteredProperty = propertyFilter ? properties.find((p) => p.id === propertyFilter) : null;
+  const filteredPropertyTitle = filteredProperty ? filteredProperty.title : propertyFilter;
+
+  // Filtered interaction datasets
+  const activeInquiries = inquiries.filter(
+    (i) => !i.archived && (!propertyFilter || i.propertyId === propertyFilter)
+  );
+
+  const activeVisits = visits.filter(
+    (v) => !propertyFilter || v.propertyId === propertyFilter
+  );
+
+  const activeReservations = reservations.filter(
+    (r) => !propertyFilter || r.propertyId === propertyFilter
+  );
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 pb-24 md:pb-12">
       {/* Header */}
-      <div className="bg-white dark:bg-slate-900/80 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-xl">
-        <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">Centro de Consultas & Visitas</h1>
-        <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-          Gestioná las consultas recibidas, confirmá agendas de visitas y revisá señas digitales de reserva.
-        </p>
+      <div className="bg-white dark:bg-slate-900/80 p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm dark:shadow-xl space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">Centro de Consultas & Visitas</h1>
+            <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+              Gestioná las consultas recibidas, confirmá agendas de visitas y revisá señas digitales de reserva.
+            </p>
+          </div>
+
+          {propertyFilter && (
+            <div className="flex items-center gap-2 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800/80 px-3.5 py-2 rounded-2xl shrink-0">
+              <Filter className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+              <div className="text-xs">
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 block font-semibold uppercase">Filtrando por inmueble:</span>
+                <span className="font-bold text-indigo-900 dark:text-indigo-200 max-w-[200px] truncate block">
+                  {filteredPropertyTitle}
+                </span>
+              </div>
+              <button
+                onClick={handleClearFilter}
+                className="p-1.5 ml-1 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 transition-colors"
+                title="Quitar filtro de propiedad"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Tabs */}
@@ -43,7 +106,7 @@ export const InteractionsView: React.FC<InteractionsViewProps> = ({
           }`}
         >
           <MessageSquare className="w-4 h-4" />
-          <span>Consultas ({inquiries.filter((i) => !i.archived).length})</span>
+          <span>Consultas ({activeInquiries.length})</span>
         </button>
 
         <button
@@ -53,7 +116,7 @@ export const InteractionsView: React.FC<InteractionsViewProps> = ({
           }`}
         >
           <Calendar className="w-4 h-4" />
-          <span>Visitas ({visits.length})</span>
+          <span>Visitas ({activeVisits.length})</span>
         </button>
 
         <button
@@ -63,96 +126,96 @@ export const InteractionsView: React.FC<InteractionsViewProps> = ({
           }`}
         >
           <ShieldCheck className="w-4 h-4" />
-          <span>Reservas ({reservations.length})</span>
+          <span>Reservas ({activeReservations.length})</span>
         </button>
       </div>
 
       {/* Tab 1: Inquiries Inbox */}
       {activeTab === 'inquiries' && (
         <div className="space-y-4">
-          {inquiries.filter((i) => !i.archived).length > 0 ? (
-            inquiries
-              .filter((i) => !i.archived)
-              .map((inq) => (
-                <motion.div
-                  key={inq.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className={`p-5 rounded-2xl border transition-all space-y-3 ${
-                    !inq.read
-                      ? 'bg-white dark:bg-slate-900 border-indigo-500/50 shadow-indigo-500/10'
-                      : 'bg-white/80 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800'
-                  }`}
-                >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-800/80 pb-3">
-                    <div>
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
-                        {inq.propertyCategory === 'land' ? 'Consulta por Terreno / Lote' : 'Consulta por Propiedad'}
-                      </span>
-                      <h3 className="text-sm font-bold text-slate-900 dark:text-white mt-0.5">{inq.propertyTitle}</h3>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <span className="text-[11px] text-slate-500 dark:text-slate-400">
-                        {new Date(inq.createdAt).toLocaleDateString('es-AR')}
-                      </span>
-                      {!inq.read && (
-                        <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 text-[10px] font-bold">
-                          Sin Leer
-                        </span>
-                      )}
-                    </div>
+          {activeInquiries.length > 0 ? (
+            activeInquiries.map((inq) => (
+              <motion.div
+                key={inq.id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={`p-5 rounded-2xl border transition-all space-y-3 ${
+                  !inq.read
+                    ? 'bg-white dark:bg-slate-900 border-indigo-500/50 shadow-indigo-500/10'
+                    : 'bg-white/80 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800'
+                }`}
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-200 dark:border-slate-800/80 pb-3">
+                  <div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                      {inq.propertyCategory === 'land' ? 'Consulta por Terreno / Lote' : 'Consulta por Propiedad'}
+                    </span>
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-white mt-0.5">{inq.propertyTitle}</h3>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-700 dark:text-slate-300">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-slate-900 dark:text-white">{inq.buyerName}</span>
-                    </div>
-                    <div className="flex items-center gap-3 text-slate-500 dark:text-slate-400">
-                      <span className="flex items-center gap-1">
-                        <Mail className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
-                        {inq.buyerEmail}
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                      {new Date(inq.createdAt).toLocaleDateString('es-AR')}
+                    </span>
+                    {!inq.read && (
+                      <span className="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30 text-[10px] font-bold">
+                        Sin Leer
                       </span>
-                      <span className="flex items-center gap-1">
-                        <Phone className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                        {inq.buyerPhone}
-                      </span>
-                    </div>
+                    )}
                   </div>
+                </div>
 
-                  <p className="text-xs text-slate-800 dark:text-slate-300 bg-slate-50 dark:bg-slate-950/60 p-3 rounded-xl border border-slate-200 dark:border-slate-800 font-mono leading-relaxed">
-                    "{inq.message}"
-                  </p>
-
-                  <div className="flex items-center justify-end gap-2 pt-2">
-                    <button
-                      onClick={() => onToggleInquiryRead(inq.id)}
-                      className="px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold min-h-[40px]"
-                    >
-                      {inq.read ? 'Marcar como No Leída' : 'Marcar como Leída'}
-                    </button>
-                    <button
-                      onClick={() => onArchiveInquiry(inq.id)}
-                      className="px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-rose-100 dark:hover:bg-rose-950/60 text-slate-600 dark:text-slate-400 hover:text-rose-700 dark:hover:text-rose-300 text-xs font-semibold min-h-[40px] flex items-center gap-1.5"
-                    >
-                      <Archive className="w-3.5 h-3.5" />
-                      <span>Archivar</span>
-                    </button>
-                    <a
-                      href={`https://wa.me/${inq.buyerPhone.replace(/[^\d+]/g, '')}?text=${encodeURIComponent(`Hola ${inq.buyerName}, gracias por consultar por ${inq.propertyTitle}.`)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold min-h-[40px] flex items-center gap-1.5 shadow-md shadow-emerald-600/20"
-                    >
-                      <span>Responder por WhatsApp</span>
-                      <ExternalLink className="w-3.5 h-3.5" />
-                    </a>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-slate-700 dark:text-slate-300">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-slate-900 dark:text-white">{inq.buyerName}</span>
                   </div>
-                </motion.div>
-              ))
+                  <div className="flex items-center gap-3 text-slate-500 dark:text-slate-400">
+                    <span className="flex items-center gap-1">
+                      <Mail className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                      {inq.buyerEmail}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Phone className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                      {inq.buyerPhone}
+                    </span>
+                  </div>
+                </div>
+
+                <p className="text-xs text-slate-800 dark:text-slate-300 bg-slate-50 dark:bg-slate-950/60 p-3 rounded-xl border border-slate-200 dark:border-slate-800 font-mono leading-relaxed">
+                  "{inq.message}"
+                </p>
+
+                <div className="flex items-center justify-end gap-2 pt-2">
+                  <button
+                    onClick={() => onToggleInquiryRead(inq.id)}
+                    className="px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold min-h-[40px]"
+                  >
+                    {inq.read ? 'Marcar como No Leída' : 'Marcar como Leída'}
+                  </button>
+                  <button
+                    onClick={() => onArchiveInquiry(inq.id)}
+                    className="px-3 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-rose-100 dark:hover:bg-rose-950/60 text-slate-600 dark:text-slate-400 hover:text-rose-700 dark:hover:text-rose-300 text-xs font-semibold min-h-[40px] flex items-center gap-1.5"
+                  >
+                    <Archive className="w-3.5 h-3.5" />
+                    <span>Archivar</span>
+                  </button>
+                  <a
+                    href={`https://wa.me/${inq.buyerPhone.replace(/[^\d+]/g, '')}?text=${encodeURIComponent(`Hola ${inq.buyerName}, gracias por consultar por ${inq.propertyTitle}.`)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold min-h-[40px] flex items-center gap-1.5 shadow-md shadow-emerald-600/20"
+                  >
+                    <span>Responder por WhatsApp</span>
+                    <ExternalLink className="w-3.5 h-3.5" />
+                  </a>
+                </div>
+              </motion.div>
+            ))
           ) : (
             <div className="text-center py-12 bg-white dark:bg-slate-900/40 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 text-slate-600 dark:text-slate-400 text-xs shadow-sm">
-              No hay consultas pendientes en la bandeja de entrada.
+              {propertyFilter
+                ? 'No hay consultas registradas para este inmueble en particular.'
+                : 'No hay consultas pendientes en la bandeja de entrada.'}
             </div>
           )}
         </div>
@@ -161,8 +224,8 @@ export const InteractionsView: React.FC<InteractionsViewProps> = ({
       {/* Tab 2: Visit Schedules */}
       {activeTab === 'visits' && (
         <div className="space-y-4">
-          {visits.length > 0 ? (
-            visits.map((vis) => (
+          {activeVisits.length > 0 ? (
+            activeVisits.map((vis) => (
               <motion.div
                 key={vis.id}
                 initial={{ opacity: 0, y: 10 }}
@@ -235,7 +298,9 @@ export const InteractionsView: React.FC<InteractionsViewProps> = ({
             ))
           ) : (
             <div className="text-center py-12 bg-white dark:bg-slate-900/40 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 text-slate-600 dark:text-slate-400 text-xs shadow-sm">
-              No hay solicitudes de visitas agendadas.
+              {propertyFilter
+                ? 'No hay solicitudes de visitas agendadas para este inmueble en particular.'
+                : 'No hay solicitudes de visitas agendadas.'}
             </div>
           )}
         </div>
@@ -244,8 +309,8 @@ export const InteractionsView: React.FC<InteractionsViewProps> = ({
       {/* Tab 3: Digital Reservations */}
       {activeTab === 'reservations' && (
         <div className="space-y-4">
-          {reservations.length > 0 ? (
-            reservations.map((res) => (
+          {activeReservations.length > 0 ? (
+            activeReservations.map((res) => (
               <motion.div
                 key={res.id}
                 initial={{ opacity: 0, y: 10 }}
@@ -312,7 +377,9 @@ export const InteractionsView: React.FC<InteractionsViewProps> = ({
             ))
           ) : (
             <div className="text-center py-12 bg-white dark:bg-slate-900/40 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 text-slate-600 dark:text-slate-400 text-xs shadow-sm">
-              No hay solicitudes de reserva registradas.
+              {propertyFilter
+                ? 'No hay solicitudes de reserva registradas para este inmueble en particular.'
+                : 'No hay solicitudes de reserva registradas.'}
             </div>
           )}
         </div>

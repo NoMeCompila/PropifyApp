@@ -119,6 +119,20 @@ export default function App() {
   // Toast notifications
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
+  // Interactions navigation & filter state
+  const [interactionsInitialTab, setInteractionsInitialTab] = useState<'inquiries' | 'visits' | 'reservations'>('inquiries');
+  const [interactionsPropertyFilter, setInteractionsPropertyFilter] = useState<string | null>(null);
+
+  const handleNavigateToInteractions = (
+    tab: 'inquiries' | 'visits' | 'reservations' = 'inquiries',
+    propertyId?: string
+  ) => {
+    setInteractionsInitialTab(tab);
+    setInteractionsPropertyFilter(propertyId || null);
+    setActivePage('interactions');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const addToast = (message: string, type: ToastType = 'success') => {
     const newToast: ToastMessage = {
       id: `toast-${Date.now()}-${Math.random()}`,
@@ -402,9 +416,19 @@ export default function App() {
           selectedProperty ? (
             <PropertyDetailView
               property={selectedProperty}
+              currentUser={currentUser}
+              roleMode={roleMode}
+              inquiries={inquiries}
+              visits={visits}
+              reservations={reservations}
               onBack={handleBackFromDetail}
               onOpenScheduleVisit={() => setIsScheduleVisitOpen(true)}
               onOpenReservation={() => setIsReservationOpen(true)}
+              onNavigateToInteractions={handleNavigateToInteractions}
+              onOpenEditModal={(prop) => {
+                setPropertyToEdit(prop);
+                setIsPropertyFormOpen(true);
+              }}
               onSubmitInquiry={handleInquirySubmit}
             />
           ) : (
@@ -466,6 +490,10 @@ export default function App() {
             inquiries={inquiries}
             visits={visits}
             reservations={reservations}
+            initialTab={interactionsInitialTab}
+            initialPropertyFilter={interactionsPropertyFilter}
+            properties={properties}
+            onClearPropertyFilter={() => setInteractionsPropertyFilter(null)}
             onToggleInquiryRead={async (id) => {
               const inq = inquiries.find((i) => i.id === id);
               if (inq) {
