@@ -41,6 +41,62 @@ import { PropertyFormModal } from './components/PropertyFormModal';
 import { ToastContainer, ToastMessage, ToastType } from './components/Toast';
 import { FooterBar } from './components/FooterBar';
 
+const VALID_PAGES: ActivePage[] = ['catalog', 'detail', 'dashboard', 'listings', 'interactions', 'login'];
+const VALID_TABS: ('inquiries' | 'visits' | 'reservations')[] = ['inquiries', 'visits', 'reservations'];
+
+interface RouteState {
+  page: ActivePage;
+  propertyId: string | null;
+  tab: 'inquiries' | 'visits' | 'reservations';
+  filterPropertyId: string | null;
+}
+
+const parseUrlRoute = (): RouteState => {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const rawPage = params.get('page');
+    const page: ActivePage = VALID_PAGES.includes(rawPage as ActivePage)
+      ? (rawPage as ActivePage)
+      : 'catalog';
+
+    const propertyId = params.get('id');
+    const rawTab = params.get('tab');
+    const tab: 'inquiries' | 'visits' | 'reservations' = VALID_TABS.includes(rawTab as any)
+      ? (rawTab as any)
+      : 'inquiries';
+    const filterPropertyId = params.get('propertyId');
+
+    return { page, propertyId, tab, filterPropertyId };
+  } catch {
+    return { page: 'catalog', propertyId: null, tab: 'inquiries', filterPropertyId: null };
+  }
+};
+
+const buildRouteUrl = (
+  page: ActivePage,
+  propertyId?: string | null,
+  tab?: 'inquiries' | 'visits' | 'reservations',
+  filterPropertyId?: string | null
+): string => {
+  const params = new URLSearchParams();
+  if (page !== 'catalog') {
+    params.set('page', page);
+  }
+  if (page === 'detail' && propertyId) {
+    params.set('id', propertyId);
+  }
+  if (page === 'interactions') {
+    if (tab && tab !== 'inquiries') {
+      params.set('tab', tab);
+    }
+    if (filterPropertyId) {
+      params.set('propertyId', filterPropertyId);
+    }
+  }
+  const query = params.toString();
+  return query ? `?${query}` : window.location.pathname;
+};
+
 export default function App() {
   const [roleMode, setRoleMode] = useState<UserRoleMode>(() => {
     const saved = localStorage.getItem('roleMode');
@@ -48,15 +104,31 @@ export default function App() {
   });
 
   const [activePage, setActivePage] = useState<ActivePage>(() => {
+    const fromUrl = parseUrlRoute().page;
+    if (window.location.search) {
+      return fromUrl;
+    }
     const saved = localStorage.getItem('activePage');
     return (saved as ActivePage) || 'catalog';
   });
 
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(() => {
+    const fromUrl = parseUrlRoute().propertyId;
+    if (window.location.search) {
+      return fromUrl;
+    }
     return localStorage.getItem('selectedPropertyId');
   });
   const [isLoadingProperty, setIsLoadingProperty] = useState(false);
+
+  // Interactions navigation & filter state
+  const [interactionsInitialTab, setInteractionsInitialTab] = useState<'inquiries' | 'visits' | 'reservations'>(() => {
+    return parseUrlRoute().tab;
+  });
+  const [interactionsPropertyFilter, setInteractionsPropertyFilter] = useState<string | null>(() => {
+    return parseUrlRoute().filterPropertyId;
+  });
 
   // Theme state (defaults to 'dark', persists in localStorage under 'theme')
   const [theme, setTheme] = useState<ThemeMode>(() => {
@@ -119,20 +191,6 @@ export default function App() {
   // Toast notifications
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
-  // Interactions navigation & filter state
-  const [interactionsInitialTab, setInteractionsInitialTab] = useState<'inquiries' | 'visits' | 'reservations'>('inquiries');
-  const [interactionsPropertyFilter, setInteractionsPropertyFilter] = useState<string | null>(null);
-
-  const handleNavigateToInteractions = (
-    tab: 'inquiries' | 'visits' | 'reservations' = 'inquiries',
-    propertyId?: string
-  ) => {
-    setInteractionsInitialTab(tab);
-    setInteractionsPropertyFilter(propertyId || null);
-    setActivePage('interactions');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
   const addToast = (message: string, type: ToastType = 'success') => {
     const newToast: ToastMessage = {
       id: `toast-${Date.now()}-${Math.random()}`,
@@ -149,6 +207,94 @@ export default function App() {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   };
 
+  // Central navigation dispatcher with History API synchronization
+  const navigateTo = (
+    newPage: ActivePage,
+    options?: {
+      propertyId?: string | null;
+      tab?: 'inquiries' | 'visits' | 'reservations';
+      filterPropertyId?: string | null;
+      replace?: boolean;
+    }
+  ) => {
+    const targetPropId = options?.propertyId !== undefined ? options.propertyId : (newPage === 'detail' ? selectedPropertyId : null);
+    const targetTab = options?.tab || 'inquiries';
+    const targetFilterProp = options?.filterPropertyId !== undefined ? options.filterPropertyId : null;
+
+    setActivePage(newPage);
+    setSelectedPropertyId(targetPropId);
+    setInteractionsInitialTab(targetTab);
+    setInteractionsPropertyFilter(targetFilterProp);
+
+    if (newPage !== 'detail') {
+      setSelectedProperty(null);
+    }
+
+    const newUrl = buildRouteUrl(newPage, targetPropId, targetTab, targetFilterProp);
+    const stateObj = {
+      page: newPage,
+      propertyId: targetPropId,
+      tab: targetTab,
+      filterPropertyId: targetFilterProp,
+    };
+
+    if (options?.replace) {
+      window.history.replaceState(stateObj, '', newUrl);
+    } else {
+      window.history.pushState(stateObj, '', newUrl);
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleNavigate = (page: ActivePage) => {
+    navigateTo(page, {
+      propertyId: page === 'detail' ? selectedPropertyId : null,
+      tab: 'inquiries',
+      filterPropertyId: null,
+    });
+  };
+
+  const handleNavigateToInteractions = (
+    tab: 'inquiries' | 'visits' | 'reservations' = 'inquiries',
+    propertyId?: string
+  ) => {
+    navigateTo('interactions', { tab, filterPropertyId: propertyId || null });
+  };
+
+  // Browser Back/Forward (popstate) listener
+  useEffect(() => {
+    const handlePopState = () => {
+      const { page, propertyId, tab, filterPropertyId } = parseUrlRoute();
+      setActivePage(page);
+      setSelectedPropertyId(propertyId);
+      setInteractionsInitialTab(tab);
+      setInteractionsPropertyFilter(filterPropertyId);
+      if (page !== 'detail') {
+        setSelectedProperty(null);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []);
+
+  // Ensure initial entry is registered in history stack
+  useEffect(() => {
+    const currentUrl = buildRouteUrl(activePage, selectedPropertyId, interactionsInitialTab, interactionsPropertyFilter);
+    window.history.replaceState(
+      {
+        page: activePage,
+        propertyId: selectedPropertyId,
+        tab: interactionsInitialTab,
+        filterPropertyId: interactionsPropertyFilter,
+      },
+      '',
+      currentUrl
+    );
+  }, []);
+
   // Load initial data & Supabase auth listener
   useEffect(() => {
     // Seed locations idempotently
@@ -164,7 +310,9 @@ export default function App() {
         }
         const savedPage = localStorage.getItem('activePage') as ActivePage;
         if (!savedPage || savedPage === 'login') {
-          setActivePage('dashboard');
+          if (!window.location.search) {
+            navigateTo('dashboard', { replace: true });
+          }
         }
       }
     });
@@ -201,7 +349,7 @@ export default function App() {
     loadData();
   }, [filter]);
 
-  // Rehydrate selectedProperty on initial load or page refresh if activePage is 'detail'
+  // Rehydrate selectedProperty on initial load, deep link, or page refresh if activePage is 'detail'
   useEffect(() => {
     let isMounted = true;
 
@@ -225,8 +373,7 @@ export default function App() {
               // Property no longer exists in Supabase, fallback safely to catalog
               setSelectedProperty(null);
               setSelectedPropertyId(null);
-              localStorage.removeItem('selectedPropertyId');
-              setActivePage('catalog');
+              navigateTo('catalog', { propertyId: null, replace: true });
               addToast('No se encontró la propiedad solicitada.', 'info');
             }
           }
@@ -250,18 +397,13 @@ export default function App() {
   // Handlers
   const handleSelectProperty = (property: Property) => {
     setSelectedProperty(property);
-    setSelectedPropertyId(property.id);
-    localStorage.setItem('selectedPropertyId', property.id);
-    setActivePage('detail');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    navigateTo('detail', { propertyId: property.id });
   };
 
   const handleBackFromDetail = () => {
     setSelectedProperty(null);
-    setSelectedPropertyId(null);
-    localStorage.removeItem('selectedPropertyId');
-    setActivePage(roleMode === 'seller' && currentUser ? 'dashboard' : 'catalog');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    const fallbackPage = roleMode === 'seller' && currentUser ? 'dashboard' : 'catalog';
+    navigateTo(fallbackPage, { propertyId: null });
   };
 
   const handleCreateProperty = async (data: Omit<Property, 'id' | 'createdAt' | 'updatedAt'>) => {
@@ -346,7 +488,7 @@ export default function App() {
     }
     setCurrentUser(user);
     setRoleMode('seller');
-    setActivePage('dashboard');
+    navigateTo('dashboard');
     addToast(`¡Bienvenido de nuevo, ${user.name}!`);
     return user;
   };
@@ -359,7 +501,7 @@ export default function App() {
     }
     setCurrentUser(user);
     setRoleMode('seller');
-    setActivePage('dashboard');
+    navigateTo('dashboard');
     addToast(`¡Cuenta registrada! Bienvenido, ${user.name}.`);
     return user;
   };
@@ -368,9 +510,9 @@ export default function App() {
     await signOutSeller();
     setCurrentUser(null);
     setRoleMode('buyer');
-    setActivePage('catalog');
     localStorage.removeItem('roleMode');
     localStorage.removeItem('activePage');
+    navigateTo('catalog', { replace: true });
     addToast('Sesión cerrada correctamente.', 'info');
   };
 
@@ -384,7 +526,7 @@ export default function App() {
         roleMode={roleMode}
         onToggleRoleMode={setRoleMode}
         activePage={activePage}
-        onNavigate={setActivePage}
+        onNavigate={handleNavigate}
         currentUser={currentUser}
         onSignOut={handleSignOut}
         searchQuery={filter.searchQuery || ''}
@@ -449,7 +591,7 @@ export default function App() {
               inquiries={inquiries}
               visits={visits}
               reservations={reservations}
-              onNavigate={setActivePage}
+              onNavigate={handleNavigate}
               onNavigateToInteractions={handleNavigateToInteractions}
               onOpenCreatePropertyModal={() => {
                 setPropertyToEdit(null);
@@ -463,7 +605,7 @@ export default function App() {
               onSuccess={(user) => {
                 setCurrentUser(user);
                 setRoleMode('seller');
-                setActivePage('dashboard');
+                navigateTo('dashboard');
               }}
             />
           )
@@ -476,7 +618,7 @@ export default function App() {
             inquiries={inquiries}
             visits={visits}
             reservations={reservations}
-            onNavigate={setActivePage}
+            onNavigate={handleNavigate}
             onNavigateToInteractions={handleNavigateToInteractions}
             onOpenCreatePropertyModal={() => {
               setPropertyToEdit(null);
@@ -508,7 +650,7 @@ export default function App() {
               onSuccess={(user) => {
                 setCurrentUser(user);
                 setRoleMode('seller');
-                setActivePage('listings');
+                navigateTo('listings');
               }}
             />
           )
@@ -554,7 +696,7 @@ export default function App() {
               onSuccess={(user) => {
                 setCurrentUser(user);
                 setRoleMode('seller');
-                setActivePage('interactions');
+                navigateTo('interactions');
               }}
             />
           )
@@ -569,7 +711,7 @@ export default function App() {
         roleMode={roleMode}
         activePage={activePage}
         currentUser={currentUser}
-        onNavigate={setActivePage}
+        onNavigate={handleNavigate}
         onSignOut={handleSignOut}
         onOpenMobileFilter={() => setIsMobileFilterOpen(true)}
         unreadCount={inquiries.filter((i) => !i.read).length}
