@@ -1,7 +1,7 @@
 # Capability: Mobile Bottom Navigation Bar Auth Actions
 
 ## Purpose
-Provide role-appropriate authentication actions in the mobile bottom navigation bar, offering direct login entry points for unauthenticated buyers and strictly confirmation-guarded sign-out for authenticated sellers, while preventing unauthenticated users from accessing or seeing seller navigation items.
+Provide role-appropriate authentication actions in the mobile bottom navigation bar, offering direct login entry points for unauthenticated buyers and strictly confirmation-guarded sign-out for authenticated sellers and buyers, while preventing unauthenticated users from accessing or seeing seller navigation items.
 
 ## Requirements
 
@@ -34,9 +34,19 @@ The mobile bottom navigation bar SHALL display seller management navigation item
 - **THEN** the system SHALL close the modal without ending the active session.
 
 ### Requirement: Buyer Login Entry Action
-The mobile bottom navigation bar SHALL display an "Ingresar" action in buyer mode that directs unauthenticated visitors to the login/registration view.
+The mobile bottom navigation bar SHALL display session-appropriate authentication actions in buyer mode, showing "Ingresar" for unauthenticated visitors and "Salir" (with confirmation modal) for authenticated users.
 
 #### Scenario: Unauthenticated buyer taps Ingresar in mobile navigation
-- **GIVEN** a visitor browsing in buyer mode on a mobile viewport
-- **WHEN** the buyer taps the "Ingresar" button in the bottom navigation bar
-- **THEN** the system SHALL navigate directly to the Login and Registration page (`LoginView`).
+- **GIVEN** a visitor browsing in buyer mode on a mobile viewport without an active session (`currentUser === null`)
+- **WHEN** viewing or tapping actions in the bottom navigation bar
+- **THEN** the system SHALL display the "Ingresar" button and navigate directly to the Login and Registration page (`LoginView`) when tapped.
+
+#### Scenario: Authenticated user views buyer mode navigation
+- **GIVEN** an authenticated user (`currentUser !== null`) browsing in buyer mode (`roleMode === 'buyer'`) on a mobile viewport
+- **WHEN** viewing the mobile bottom navigation bar
+- **THEN** the navigation bar SHALL display "Explorar", "Filtros", and "Salir" (instead of "Ingresar").
+
+#### Scenario: Authenticated user taps Salir in buyer mode
+- **GIVEN** an authenticated user browsing in buyer mode on a mobile viewport
+- **WHEN** tapping the "Salir" button in the bottom navigation bar
+- **THEN** the system SHALL open the logout confirmation modal.

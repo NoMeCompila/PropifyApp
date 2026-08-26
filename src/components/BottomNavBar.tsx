@@ -126,20 +126,32 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
                 </button>
               )}
 
-              {/* Login / Register entry for buyer */}
-              <button
-                onClick={() => onNavigate('login')}
-                className={`flex flex-col items-center justify-center gap-1 w-full h-full text-[11px] font-medium transition-colors min-h-[48px] ${
-                  activePage === 'login'
-                    ? 'text-indigo-600 dark:text-indigo-400 font-bold'
-                    : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
-                }`}
-              >
-                <div className={`p-1 rounded-lg ${activePage === 'login' ? 'bg-indigo-500/10 dark:bg-indigo-500/20' : ''}`}>
-                  <LogIn className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
-                </div>
-                <span>Ingresar</span>
-              </button>
+              {/* Auth action for buyer mode: Salir if authenticated, Ingresar if visitor */}
+              {currentUser ? (
+                <button
+                  onClick={() => setIsLogoutConfirmOpen(true)}
+                  className="flex flex-col items-center justify-center gap-1 w-full h-full text-[11px] font-medium text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 transition-colors min-h-[48px]"
+                >
+                  <div className="p-1 rounded-lg">
+                    <LogOut className="w-5 h-5 text-rose-500/80 hover:text-rose-600 dark:text-rose-400" />
+                  </div>
+                  <span>Salir</span>
+                </button>
+              ) : (
+                <button
+                  onClick={() => onNavigate('login')}
+                  className={`flex flex-col items-center justify-center gap-1 w-full h-full text-[11px] font-medium transition-colors min-h-[48px] ${
+                    activePage === 'login'
+                      ? 'text-indigo-600 dark:text-indigo-400 font-bold'
+                      : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
+                  }`}
+                >
+                  <div className={`p-1 rounded-lg ${activePage === 'login' ? 'bg-indigo-500/10 dark:bg-indigo-500/20' : ''}`}>
+                    <LogIn className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                  </div>
+                  <span>Ingresar</span>
+                </button>
+              )}
             </>
           )}
         </div>
