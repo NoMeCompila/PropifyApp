@@ -35,13 +35,15 @@ import { DashboardView } from './pages/DashboardView';
 import { ListingsView } from './pages/ListingsView';
 import { InteractionsView } from './pages/InteractionsView';
 import { LoginView } from './pages/LoginView';
+import { TermsAndConditionsView } from './pages/TermsAndConditionsView';
+import { PrivacyPolicyView } from './pages/PrivacyPolicyView';
 import { ScheduleVisitModal } from './components/ScheduleVisitModal';
 import { ReservationModal } from './components/ReservationModal';
 import { PropertyFormModal } from './components/PropertyFormModal';
 import { ToastContainer, ToastMessage, ToastType } from './components/Toast';
 import { FooterBar } from './components/FooterBar';
 
-const VALID_PAGES: ActivePage[] = ['catalog', 'detail', 'dashboard', 'listings', 'interactions', 'login'];
+const VALID_PAGES: ActivePage[] = ['catalog', 'detail', 'dashboard', 'listings', 'interactions', 'login', 'terms', 'privacy'];
 const VALID_TABS: ('inquiries' | 'visits' | 'reservations')[] = ['inquiries', 'visits', 'reservations'];
 
 interface RouteState {
@@ -701,10 +703,46 @@ export default function App() {
             />
           )
         )}
+
+        {activePage === 'terms' && (
+          currentUser ? (
+            <TermsAndConditionsView onBack={() => handleNavigate('dashboard')} />
+          ) : (
+            <LoginView
+              onSignIn={handleSignIn}
+              onSignUp={handleSignUp}
+              onSuccess={(user) => {
+                setCurrentUser(user);
+                setRoleMode('seller');
+                navigateTo('terms');
+              }}
+            />
+          )
+        )}
+
+        {activePage === 'privacy' && (
+          currentUser ? (
+            <PrivacyPolicyView onBack={() => handleNavigate('dashboard')} />
+          ) : (
+            <LoginView
+              onSignIn={handleSignIn}
+              onSignUp={handleSignUp}
+              onSuccess={(user) => {
+                setCurrentUser(user);
+                setRoleMode('seller');
+                navigateTo('privacy');
+              }}
+            />
+          )
+        )}
       </main>
 
       {/* Universal Footer */}
-      <FooterBar currentUser={currentUser} />
+      <FooterBar
+        currentUser={currentUser}
+        onNavigateTerms={() => handleNavigate('terms')}
+        onNavigatePrivacy={() => handleNavigate('privacy')}
+      />
 
       {/* Mobile Fixed Bottom Navigation Bar */}
       <BottomNavBar

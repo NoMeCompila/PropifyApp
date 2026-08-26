@@ -3,9 +3,15 @@ import { AuthUser } from '../types';
 
 interface FooterBarProps {
   currentUser?: AuthUser | null;
+  onNavigateTerms?: () => void;
+  onNavigatePrivacy?: () => void;
 }
 
-export const FooterBar: React.FC<FooterBarProps> = ({ currentUser }) => {
+export const FooterBar: React.FC<FooterBarProps> = ({
+  currentUser,
+  onNavigateTerms,
+  onNavigatePrivacy,
+}) => {
   const isSeller = Boolean(currentUser);
 
   return (
@@ -14,25 +20,32 @@ export const FooterBar: React.FC<FooterBarProps> = ({ currentUser }) => {
         {isSeller && (
           <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs sm:text-sm font-semibold text-slate-900 dark:text-white">
             <a
-              href="#"
-              onClick={(e) => e.preventDefault()}
-              className="hover:underline hover:text-indigo-600 dark:hover:text-purple-300 transition-colors"
+              href="#terms"
+              onClick={(e) => {
+                e.preventDefault();
+                onNavigateTerms?.();
+              }}
+              className="hover:underline hover:text-indigo-600 dark:hover:text-purple-300 transition-colors cursor-pointer"
             >
               Términos y Condiciones
             </a>
             <span className="text-slate-500 dark:text-purple-400">·</span>
             <a
-              href="#"
-              onClick={(e) => e.preventDefault()}
-              className="hover:underline hover:text-indigo-600 dark:hover:text-purple-300 transition-colors"
+              href="#privacy"
+              onClick={(e) => {
+                e.preventDefault();
+                onNavigatePrivacy?.();
+              }}
+              className="hover:underline hover:text-indigo-600 dark:hover:text-purple-300 transition-colors cursor-pointer"
             >
               Política de Privacidad
             </a>
             <span className="text-slate-500 dark:text-purple-400">·</span>
             <a
-              href="#"
-              onClick={(e) => e.preventDefault()}
-              className="hover:underline hover:text-indigo-600 dark:hover:text-purple-300 transition-colors"
+              href="https://www.argentina.gob.ar/servicio/iniciar-un-reclamo-ante-defensa-del-consumidor"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:underline hover:text-indigo-600 dark:hover:text-purple-300 transition-colors cursor-pointer"
             >
               Defensa del Consumidor
             </a>

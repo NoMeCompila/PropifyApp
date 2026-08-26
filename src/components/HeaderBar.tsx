@@ -4,7 +4,7 @@ import { AuthUser, ThemeMode } from '../types';
 import { ThemeToggle } from './ThemeToggle';
 
 export type UserRoleMode = 'buyer' | 'seller';
-export type ActivePage = 'catalog' | 'detail' | 'dashboard' | 'listings' | 'interactions' | 'login';
+export type ActivePage = 'catalog' | 'detail' | 'dashboard' | 'listings' | 'interactions' | 'login' | 'terms' | 'privacy';
 
 interface HeaderBarProps {
   roleMode: UserRoleMode;
